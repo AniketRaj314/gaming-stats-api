@@ -14,6 +14,18 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function preferFreshArray(fresh, previous) {
+  if (Array.isArray(fresh) && fresh.length > 0) return fresh;
+  if (Array.isArray(previous) && previous.length > 0) return previous;
+  return Array.isArray(fresh) ? fresh : [];
+}
+
+function preferFreshTotalPlaytime(fresh, previous) {
+  if (fresh?.total) return fresh;
+  if (previous?.total) return previous;
+  return fresh ?? previous ?? null;
+}
+
 async function refreshUserSnapshot(username) {
   log('REFRESH', `Starting snapshot refresh for ${username}`);
   const previous = readSnapshot(username);
@@ -47,15 +59,18 @@ async function refreshUserSnapshot(username) {
       ...(previous?.data?.profile ? { profile: previous.data.profile } : {}),
       competitive: {
         rank: previous?.data?.competitive?.rank ?? null,
-        agents: results.competitiveAgents?.agents ?? [],
-        maps: results.competitiveMaps?.maps ?? [],
+        agents: preferFreshArray(results.competitiveAgents?.agents, previous?.data?.competitive?.agents),
+        maps: preferFreshArray(results.competitiveMaps?.maps, previous?.data?.competitive?.maps),
       },
       unrated: {
-        agents: results.unratedAgents?.agents ?? [],
-        maps: results.unratedMaps?.maps ?? [],
+        agents: preferFreshArray(results.unratedAgents?.agents, previous?.data?.unrated?.agents),
+        maps: preferFreshArray(results.unratedMaps?.maps, previous?.data?.unrated?.maps),
       },
       shared: {
-        totalPlaytime: results.sharedPlaytime?.totalPlaytime ?? null,
+        totalPlaytime: preferFreshTotalPlaytime(
+          results.sharedPlaytime?.totalPlaytime,
+          previous?.data?.shared?.totalPlaytime
+        ),
       },
     },
   };

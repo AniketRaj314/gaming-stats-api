@@ -74,6 +74,44 @@ describe('refreshUserSnapshot', () => {
       tracker: expect.objectContaining({ status: 'ok' }),
     }));
   });
+
+  test('preserves previous tracker modules when a refresh returns empty data', async () => {
+    scrapeStats.mockReset();
+    scrapeStats
+      .mockResolvedValueOnce({ agents: [] })
+      .mockResolvedValueOnce({ maps: [] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ agents: [] })
+      .mockResolvedValueOnce({ maps: [] });
+
+    readSnapshot.mockReturnValue({
+      username: USERNAME,
+      status: 'ok',
+      lastRefreshedAt: '2026-09-11T04:07:54.033Z',
+      data: {
+        competitive: {
+          rank: { current: { rank: 'Platinum 2' }, peak: { rank: 'Platinum 3' } },
+          agents: [{ agent: 'Omen' }],
+          maps: [{ map: 'Ascent' }],
+        },
+        unrated: {
+          agents: [{ agent: 'Raze' }],
+          maps: [{ map: 'Sunset' }],
+        },
+        shared: {
+          totalPlaytime: { total: '2,018 hrs' },
+        },
+      },
+    });
+
+    const snapshot = await refreshUserSnapshot(USERNAME);
+
+    expect(snapshot.data.competitive.agents).toEqual([{ agent: 'Omen' }]);
+    expect(snapshot.data.competitive.maps).toEqual([{ map: 'Ascent' }]);
+    expect(snapshot.data.unrated.agents).toEqual([{ agent: 'Raze' }]);
+    expect(snapshot.data.unrated.maps).toEqual([{ map: 'Sunset' }]);
+    expect(snapshot.data.shared.totalPlaytime).toEqual({ total: '2,018 hrs' });
+  });
 });
 
 describe('mergeRankForCompatibility', () => {
