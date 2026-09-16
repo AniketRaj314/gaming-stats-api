@@ -20,7 +20,12 @@ index, `/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
 `/custom/valorant/llms.txt` for Valorant. PSN data uses the same existing
 `X-API-Key` header as Valorant stats; only the documentation is public.
 
-This project refreshes player data from tracker.gg through Apify, stores snapshot files on disk, and serves those cached snapshots through a small authenticated Express API. It is designed for personal sites, side projects, dashboards, and self-hosted community tools where you want predictable API responses without scraping on every request.
+This project serves provider data from stored snapshots through a small
+authenticated Express API. Valorant snapshots are refreshed from tracker.gg and
+Henrik-backed profile data; PSN uses a separately scheduled, encrypted owner
+connection. It is designed for personal sites, side projects, dashboards, and
+self-hosted community tools where requests should never scrape an upstream
+service directly.
 
 If you want to fork this for your own player page, use it as a base for a custom stats backend, or contribute improvements back upstream, that is exactly the kind of usage this repo is meant to support.
 
@@ -39,19 +44,25 @@ For request examples and API usage, open the built-in docs page after the server
 - API key protection by default
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; optional encrypted SQLite session storage and cached snapshots for PSN
+- PSN played history, trophy summary, current presence, and per-game trophy details
 
 ## Requirements
 
 Before you run this project, you need:
 
 - Node.js 24 LTS
-- an [Apify](https://apify.com/) account and `APIFY_TOKEN`
-- a [HenrikDev](https://docs.henrikdev.xyz/valorant/) API key if you want profile data
 - at least one self-generated API key in `API_KEYS`
-- one or more Riot IDs in `TRACKED_USERNAMES`
-- tracker.gg profiles set to public for the players you want to track
 
-## Quick Start
+Valorant additionally needs an [Apify](https://apify.com/) account and
+`APIFY_TOKEN`, one or more Riot IDs in `TRACKED_USERNAMES`, public tracker.gg
+profiles, and a [HenrikDev](https://docs.henrikdev.xyz/valorant/) API key if you
+want profile data. A PSN-only deployment can leave Valorant refresh disabled.
+
+PSN is optional. Enabling it additionally requires a PSN online ID, a private
+32-byte encryption key, persistent storage, and an owner-generated NPSSO used
+once by the private connection CLI. The NPSSO is never an API or website value.
+
+## Valorant Quick Start
 
 1. Install dependencies
 
@@ -108,6 +119,38 @@ Before you run this project, you need:
 
 If `ENABLE_AUTO_REFRESH=true`, the server can also refresh missing or due snapshots automatically in-process.
 
+## PSN Setup
+
+The complete security, recovery, and data-contract guide is in
+[docs/psn.md](docs/psn.md). For local setup with Node 24:
+
+```bash
+npm run psn:init-key
+export PSN_ONLINE_ID=your-psn-online-id
+export GAMING_ENCRYPTION_KEY_FILE=.private/psn.key
+npm run psn:connect
+npm run psn:refresh
+ENABLE_AUTO_REFRESH=false ENABLE_PSN=true npm start
+```
+
+The connection prompt accepts the NPSSO value or Sony's JSON response. Get it by
+signing in to PlayStation and opening Sony's session-cookie endpoint in that same
+browser. Never put NPSSO, access/refresh tokens, or encryption keys in chat,
+screenshots, Git, command arguments, browser code, or public HTTP routes.
+
+For Railway, attach a persistent volume at `/app/cache`, use one always-on
+replica, set `GAMING_DATA_DIR=/app/cache/gaming`, and deploy initially with
+`ENABLE_PSN=false`. Open a full interactive shell with `railway ssh`; after the
+remote prompt appears, run `npm run psn:connect:production`, followed by
+`npm run psn:status` and `npm run psn:refresh`. Exit the shell, set
+`ENABLE_PSN=true`, redeploy, and verify the status again after restart.
+
+Do not use `railway ssh -- node scripts/psn/cli.js connect`: Railway command-mode
+SSH can echo the secret locally without forwarding it. Production rejects that
+unsafe flow. If an NPSSO is ever displayed or shared, cancel, use PlayStation's
+[**Sign Out on All Devices**](https://www.playstation.com/en-in/support/account/sign-in/),
+and generate a fresh value before reconnecting.
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -115,13 +158,22 @@ If `ENABLE_AUTO_REFRESH=true`, the server can also refresh missing or due snapsh
 | `APIFY_TOKEN` | Yes | Apify token used for tracker.gg scraping runs |
 | `APIFY_MEMORY_MB` | No | Memory assigned to each Apify actor run. Defaults to `2048` |
 | `HENRIK_API_KEY` | Yes for `refresh:profiles` | HenrikDev API key used for account profile data |
-| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant stats and all `/psn/*` routes |
-| `TRACKED_USERNAMES` | Yes | Comma-separated Riot IDs to support in this API |
+| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant stats and PSN data routes; documentation stays public |
+| `TRACKED_USERNAMES` | Yes for Valorant | Comma-separated Riot IDs to support in this API |
 | `PORT` | No | Port the server listens on. Defaults to `3000` |
 | `ENABLE_AUTO_REFRESH` | No | Set to `true` to enable the built-in scheduler |
 | `REFRESH_INTERVAL_HOURS` | No | Refresh cadence for auto-refresh and `nextRefreshAt`. Defaults to `48` |
 | `REFRESH_STAGGER_MS` | No | Delay between scrape steps during snapshot refresh. Defaults to `5000` |
 | `APIFY_TIMEOUT_MS` | No | Timeout for an individual Apify call. Defaults to `420000` |
+| `ENABLE_PSN` | No | Enables PSN cached routes and its scheduler. Defaults to `false`; connect and refresh before enabling |
+| `PSN_ONLINE_ID` | Yes for PSN | Expected owner online ID, 3–32 letters, numbers, `_`, or `-`; verified during connection |
+| `GAMING_DATA_DIR` | No | Parent directory for provider state. Defaults to `cache/gaming`; use `/app/cache/gaming` with the Railway volume |
+| `GAMING_ENCRYPTION_KEY` | Yes for hosted PSN | Private 64-character hex key used to encrypt the stored Sony session |
+| `GAMING_ENCRYPTION_KEY_FILE` | Local alternative | Private mode-0600 file containing the encryption key; do not set both key options |
+| `PSN_REFRESH_MINUTES` | No | Library, visible trophy sets, and summary cadence. Defaults to `15`; allowed `5–1440` |
+| `PSN_PRESENCE_SECONDS` | No | Presence cadence. Defaults to `60`; allowed `30–3600` |
+| `PSN_DETAILS_MINUTES` | No | Per-game trophy-detail cadence. Defaults to `60`; allowed `15–1440` |
+| `PSN_MAX_STALE_HOURS` | No | Maximum non-presence stale serving window. Defaults to `24`; allowed `1–168` |
 
 ## How Refreshing Works
 
@@ -175,8 +227,9 @@ Tracker support threads I used to verify the current flow:
 
 The local setup above is enough. Keep in mind:
 
-- snapshots are written to `cache/snapshots/`
-- if you delete that directory, the API will need to refresh snapshots again
+- Valorant snapshots are written to `cache/snapshots/`; deleting them requires a refresh
+- PSN credentials and snapshots default to `cache/gaming/psn/`; keep the encryption key with that state
+- use `npm run psn:disconnect` before deliberately replacing PSN state or its key
 
 ### Railway
 
@@ -192,6 +245,11 @@ Recommended setup:
    - an external Railway cron service that runs `npm run refresh:snapshots`
 6. Run `npm run refresh:profiles` as a separate lightweight job for profile and rank data.
 
+When PSN is enabled, mount the volume at `/app/cache`, set
+`GAMING_DATA_DIR=/app/cache/gaming`, use one replica with sleeping disabled, and
+follow the interactive owner-connection sequence in [PSN Setup](#psn-setup).
+Keep `GAMING_ENCRYPTION_KEY` in Railway secrets rather than on the volume.
+
 For a simple single-service deployment, the built-in scheduler is the easiest path.
 
 ### Docker / Generic Self-Hosting
@@ -199,10 +257,13 @@ For a simple single-service deployment, the built-in scheduler is the easiest pa
 This project works fine behind any process manager or container runtime, as long as you:
 
 - expose the same `PORT` your app listens on
-- mount persistent storage for `cache/snapshots/`
-- provide `APIFY_TOKEN`, `API_KEYS`, and `TRACKED_USERNAMES`
-- provide `HENRIK_API_KEY` if you use `profile`
-- decide whether auto-refresh should run inside the app process
+- mount persistent storage for Valorant snapshots and `GAMING_DATA_DIR` when using PSN
+- always provide `API_KEYS`
+- provide `APIFY_TOKEN` and `TRACKED_USERNAMES` when using Valorant
+- provide `HENRIK_API_KEY` when using Valorant profile data
+- provide the PSN variables and private owner connection when using PSN
+- run only one PSN writer/replica for each encrypted session
+- decide whether each provider's scheduler should run inside the app process
 
 Self-hosting checklist:
 
@@ -218,6 +279,12 @@ npm start
 npm run dev
 npm run refresh:snapshots
 npm run refresh:profiles
+npm run psn:init-key
+npm run psn:connect
+npm run psn:connect:production
+npm run psn:status
+npm run psn:refresh
+npm run psn:disconnect
 npm test
 npm run test:coverage
 ```
@@ -226,6 +293,8 @@ npm run test:coverage
 
 After the server is running, see:
 
+- `/docs` and `/llms.txt` for the provider index
+- `/psn/docs` and `/psn/llms.txt` for PSN
 - `/custom/valorant/docs` for human-friendly usage docs
 - `/custom/valorant/llms.txt` for a compact machine-readable summary
 

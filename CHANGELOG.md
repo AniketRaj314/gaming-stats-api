@@ -24,6 +24,9 @@
 - Require Railway owner connections to use its full interactive shell. Railway's
   command-mode SSH can echo credential input locally without forwarding it; the
   documented production path now guards against that unsafe invocation.
+- Align the README, environment example, detailed PSN guide, human docs, and
+  `llms.txt` with the verified local and Railway setup, activation, revocation,
+  refresh, restart, and persistent-storage flow.
 
 ## 2.3.0 — 2026-09-16 (local implementation)
 

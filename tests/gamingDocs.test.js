@@ -28,9 +28,11 @@ test('PSN guides share endpoint contracts, examples, and availability semantics'
   for (const route of ['/psn/docs', '/psn/llms.txt']) {
     const res = await request(app).get(route);
     for (const text of ['/psn/library', '/psn/summary', '/psn/presence', '/psn/games/:titleId',
-      'unknownPlatformRecords', 'trophyStatus', 'earnedRate', 'reconnect-required', 'HTTP 401', 'HTTP 503', 'private, no-store']) {
+      'unknownPlatformRecords', 'trophyStatus', 'earnedRate', 'reconnect-required', 'HTTP 401', 'HTTP 503',
+      'private, no-store', 'npm run psn:connect:production', 'ENABLE_PSN=false', 'GAMING_ENCRYPTION_KEY']) {
       expect(res.text).toContain(text);
     }
+    expect(res.text).not.toContain('```sh\nrailway ssh -- node scripts/psn/cli.js connect');
   }
   const txt = (await request(app).get('/psn/llms.txt')).text;
   const examples = [...txt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));

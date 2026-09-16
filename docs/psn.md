@@ -20,9 +20,9 @@ requests from the website never call Sony or initiate token refresh. Optional
 PSN setup errors are contained and do not stop Valorant reads. The HTTP listener
 and PSN scheduler start before the existing Valorant static-asset initialization.
 
-The Railway volume previously verified at `/app/cache` can hold the default
-`cache/gaming/psn` directory. Use one service replica and keep app sleeping off.
-These are deployment prerequisites; this branch does not change Railway settings.
+The production Railway volume is mounted at `/app/cache`, with PSN state under
+`/app/cache/gaming/psn`. Use one service replica and keep app sleeping off.
+Other hosts need an equivalent persistent writable path.
 
 ## Owner connection: local verification first
 
@@ -34,7 +34,7 @@ Run these from the repository with Node 24 selected:
 
 ```sh
 npm run psn:init-key
-export PSN_ONLINE_ID=spider314159
+export PSN_ONLINE_ID=your-psn-online-id
 export GAMING_ENCRYPTION_KEY_FILE=.private/psn.key
 npm run psn:connect
 ```
@@ -72,8 +72,20 @@ The second command is entered after the remote `root@...:/app#` prompt appears.
 Railway's command-mode SSH can echo input locally and fail to forward it, so do
 not use `railway ssh -- node scripts/psn/cli.js connect`. The full interactive
 shell correctly hides and forwards the NPSSO. The production CLI refuses a
-connection that is not marked as using this protected path. Run `exit` after
-the connection succeeds.
+connection that is not marked as using this protected path. Keep the remote
+shell open after the connection succeeds for the initial checks below.
+
+Inside the same Railway shell, verify and populate the initial snapshots before
+activation:
+
+```sh
+npm run psn:status
+npm run psn:refresh
+exit
+```
+
+The first status can show connected with not-configured snapshots until refresh
+finishes. A successful refresh returns PSN job results and does not call Valorant.
 
 After connecting:
 
@@ -244,29 +256,62 @@ from Git; never upload a local session as part of the application image.
 ## Deployment gate
 
 1. Validate the local adapter and owner identity using a fresh intentional login.
-2. Deploy Node 24 and this release with `ENABLE_PSN=false`; verify Valorant using
-   cached routes. A normal deployment can run the existing Valorant scheduler if
-   its snapshot is due—do not use that as a test.
+2. Deploy Node 24 and this release with `ENABLE_PSN=false`; verify health and any
+   existing providers through cached routes. A normal deployment can run the
+   Valorant scheduler if its snapshot is due—do not use a live refresh as a test.
 3. Configure the account ID alias, encryption key, and persistent data path privately.
-4. Connect directly in a private terminal on the destination service with the
-   owner-operated CLI. Do not copy the locally rotating session to production.
-5. Verify one library sync, then enable the scheduler. Check restart recovery,
+4. Connect from a private full interactive shell on the destination service with
+   the owner-operated CLI. Do not copy the locally rotating session to production.
+5. Verify one library sync, then set `ENABLE_PSN=true` and redeploy. Check restart recovery,
    real token renewal and a real idle-to-playing transition before calling it proven.
 6. Integrate the portfolio as a consumer after the backend contract is verified.
 
-For the repository's linked Railway production service, run this from your own
-terminal after deploying and configuring the production variables:
+For the repository's linked Railway production service, configure a persistent
+volume mounted at `/app/cache`, one always-on replica, and these variables before
+the initial deployment:
 
 ```sh
-railway ssh -- node scripts/psn/cli.js connect
+ENABLE_PSN=false
+PSN_ONLINE_ID=your-psn-online-id
+GAMING_DATA_DIR=/app/cache/gaming
+GAMING_ENCRYPTION_KEY=<64-character-random-hex-secret>
 ```
 
-Paste the owner NPSSO into the hidden prompt. This executes inside the deployed
-container and saves the encrypted session on its persistent volume. In contrast,
-`railway run` executes locally and must not be used to establish the hosted
-session. After connection, the operator can run `railway ssh -- node
-scripts/psn/cli.js refresh`, then set `ENABLE_PSN=true` and redeploy. Public docs
-work before activation; authenticated data routes return 503 while disabled.
+Generate and send the hosted encryption key without printing it or placing it in
+shell history:
+
+```sh
+node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))" | railway variable set GAMING_ENCRYPTION_KEY --stdin --skip-deploys
+```
+
+After the disabled deployment is running, use Railway's full interactive shell:
+
+```sh
+railway ssh
+```
+
+At the remote `root@...:/app#` prompt, run:
+
+```sh
+npm run psn:connect:production
+npm run psn:status
+npm run psn:refresh
+exit
+```
+
+Paste a fresh owner NPSSO only into that hidden prompt. Do **not** use
+`railway ssh -- node scripts/psn/cli.js connect`: Railway command-mode SSH can
+echo the credential locally and fail to forward it, and the production CLI now
+rejects that path. `railway run` also executes locally and must not establish the
+hosted session. If an NPSSO is displayed or shared, cancel and follow
+[PlayStation's Sign Out on All Devices instructions](https://www.playstation.com/en-in/support/account/sign-in/),
+then sign in again and get a fresh value.
+
+After the initial refresh, set `ENABLE_PSN=true` and allow Railway to redeploy.
+Run `railway ssh -- node scripts/psn/cli.js status` after restart; connection,
+library, and presence should report `connected`/`ready`. Then verify the four
+authenticated routes through the public origin. Public docs work before
+activation; authenticated data routes return 503 while disabled.
 
 The old prototype's observed counts are historical context, not an assertion
 about the current live results.
