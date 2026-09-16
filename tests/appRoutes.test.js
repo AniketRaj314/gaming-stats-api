@@ -163,7 +163,7 @@ describe('shared application and migration compatibility', () => {
     expect(readSnapshot).not.toHaveBeenCalled();
   });
 
-  test.each(['/docs', '/llms.txt', '/steam', '/epic'])('unimplemented route %s returns 404', async (url) => {
+  test.each(['/steam', '/epic'])('unimplemented route %s returns 404', async (url) => {
     const res = await request(createApp()).get(url);
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not found' });

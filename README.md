@@ -15,6 +15,11 @@ Playnite is being evaluated as a source for Epic and local PC games; see the
 
 The setup and API behavior documented below apply to the Valorant integration. PSN has separate setup, storage and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
 
+Public documentation is available at `/docs` and `/llms.txt` for the provider
+index, `/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
+`/custom/valorant/llms.txt` for Valorant. PSN data uses the same existing
+`X-API-Key` header as Valorant stats; only the documentation is public.
+
 This project refreshes player data from tracker.gg through Apify, stores snapshot files on disk, and serves those cached snapshots through a small authenticated Express API. It is designed for personal sites, side projects, dashboards, and self-hosted community tools where you want predictable API responses without scraping on every request.
 
 If you want to fork this for your own player page, use it as a base for a custom stats backend, or contribute improvements back upstream, that is exactly the kind of usage this repo is meant to support.

@@ -4,6 +4,7 @@ const { version } = require('../package.json');
 const { requireApiKey } = require('./shared/auth');
 const { createValorantRouter } = require('./providers/valorant');
 const { createPsnRouter } = require('./providers/psn/routes');
+const { createGamingDocsRouter } = require('./routes/gamingDocs');
 
 function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled' } = {}) {
   const app = express();
@@ -14,6 +15,8 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', version, uptime: Math.floor((Date.now() - startTime) / 1000) });
   });
+
+  app.use(createGamingDocsRouter());
 
   // Both mounts use the same router and snapshots. The old mount remains during
   // frontend migration; serving it directly also preserves POST request bodies.

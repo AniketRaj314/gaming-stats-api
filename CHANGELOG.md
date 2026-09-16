@@ -5,6 +5,9 @@
 - Mark the Gaming Stats API rebrand and expansion from a Valorant-only backend
   to multiple providers as a major release. Include the PSN implementation
   developed locally under 2.3.0; retain the Valorant compatibility aliases.
+- Add public `/docs` and `/llms.txt` provider indexes plus `/psn/docs` and
+  `/psn/llms.txt` with shared endpoint schemas, examples, authentication,
+  availability, freshness, privacy, and setup documentation.
 - Preserve played-history records when Sony reports an `unknown` category, using
   `platform: null` and reporting `unknownPlatformRecords` instead of rejecting
   the entire library snapshot.

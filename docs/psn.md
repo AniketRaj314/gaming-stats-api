@@ -78,7 +78,13 @@ Do not run the local and hosted workers against copies of the same session.
 
 ## Read endpoints
 
-Every `/psn` route requires the existing `X-API-Key` header. Call them from the
+Base path: `/psn` (production origin: `https://api.aniketraj.me`). Human-readable
+API contracts and complete illustrative responses are at `/psn/docs`; the same
+content is available to machine consumers at `/psn/llms.txt`. Both are public,
+as is the `/psn` documentation landing page. `/docs` and `/llms.txt` index all
+implemented providers.
+
+Every PSN data route requires the existing `X-API-Key` header. Call them from the
 website's server-side proxy. Responses use `Cache-Control: private, no-store`.
 
 | Route | Data |
