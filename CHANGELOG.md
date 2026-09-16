@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0 — 2026-09-16 (not deployed)
+## 3.0.0 — 2026-09-16
 
 - Mark the Gaming Stats API rebrand and expansion from a Valorant-only backend
   to multiple providers as a major release. Include the PSN implementation
@@ -16,8 +16,14 @@
 - Verification: 80 offline PSN tests passed. A fresh owner connection, live
   library/summary sync, offline presence, one game's trophy details, and all four
   authenticated cached PSN routes passed local checks. No live Valorant calls.
-- Hosted deployment, real token renewal, restart recovery, and an idle-to-playing
-  transition remain to be verified.
+- Deployed to Railway with Node 24 and the existing persistent volume. Public
+  documentation, PSN authentication boundaries, SQLite support, and cached
+  Valorant reads were verified. PSN activation requires a destination owner
+  connection; real token renewal, restart recovery, and an idle-to-playing
+  transition remain to be observed.
+- Require Railway owner connections to use its full interactive shell. Railway's
+  command-mode SSH can echo credential input locally without forwarding it; the
+  documented production path now guards against that unsafe invocation.
 
 ## 2.3.0 — 2026-09-16 (local implementation)
 
