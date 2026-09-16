@@ -48,9 +48,10 @@ due. Account for this separately from testing the cached HTTP endpoints.
   are unchanged in this routing phase.
 
 The subsequent 3.0.0 release adds the opt-in `/psn` routes, Node 24, and PSN-only
-SQLite storage. See the [PSN guide](psn.md) for its separate setup and local
-verification status. Steam and Epic remain unimplemented. The Valorant route
-migration and compatibility aliases above still apply.
+SQLite storage. Version 3.1.0 adds the independent `/steam` provider with JSON
+snapshots. See the [PSN guide](psn.md) and [Steam guide](steam.md) for their
+separate setup and verification status. Epic remains unimplemented. The
+Valorant route migration and compatibility aliases above still apply.
 
 Run `npm test -- --runInBand --silent` for offline unit and route tests. The
 provider calls in this suite are mocked; do not use the refresh scripts as tests.

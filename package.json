@@ -1,9 +1,12 @@
 {
   "name": "gaming-stats-api",
-  "version": "3.0.0",
-  "description": "Self-hostable gaming stats API with cached Valorant and PSN integrations",
+  "version": "3.1.0",
+  "description": "Self-hostable gaming stats API with cached Valorant, PSN, and Steam integrations",
   "keywords": [
     "valorant",
+    "steam",
+    "psn",
+    "gaming",
     "api",
     "stats",
     "tracker-gg",
@@ -26,7 +29,11 @@
     "psn:refresh": "node scripts/psn/cli.js refresh",
     "psn:status": "node scripts/psn/cli.js status",
     "psn:disconnect": "node scripts/psn/cli.js disconnect",
-    "test:psn": "jest tests/psn --runInBand"
+    "steam:status": "node scripts/steam/cli.js status",
+    "steam:refresh": "node scripts/steam/cli.js refresh",
+    "steam:refresh-game": "node scripts/steam/cli.js refresh-game",
+    "test:psn": "jest tests/psn --runInBand",
+    "test:steam": "jest tests/steam --runInBand"
   },
   "jest": {
     "testEnvironment": "node",

@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.1.0 — 2026-09-16 (implementation)
+
+- Add an opt-in Steam provider at `/steam` with cached profile, owned library,
+  recent playtime, per-game achievements, global rarity, and exposed game stats.
+- Keep the Steam user Web API key server-side and send it only through the
+  `x-webapi-key` header; never persist it in snapshots or expose refresh routes.
+- Add atomic JSON snapshots, bounded stale reads, backoff, background enrichment,
+  private operator refresh/status commands, and provider-isolated startup.
+- Add shared human and machine-readable Steam documentation plus the complete
+  setup, privacy, storage, and deployment guide.
+- Steam remains disabled until owner configuration and live verification are
+  completed. No Valorant refresh was used during implementation.
+- Verification: all 222 offline tests passed under Node 24 with Steam, PSN,
+  Valorant, upstream HTTP, and CLI interactions mocked.
+
 ## 3.0.0 — 2026-09-16
 
 - Mark the Gaming Stats API rebrand and expansion from a Valorant-only backend

@@ -25,6 +25,18 @@ const set = {
   trophies: [trophy], rarestUnlock: trophy, rarityCoverage: { earned: 1, earnedWithKnownRarity: 1 },
 };
 
+const steamEnvelope = {
+  schemaVersion: 1, provider: 'steam', accountRef: 'owner', status: 'ready', stale: false,
+  lastAttemptAt: '2026-09-16T12:00:00.000Z', lastSuccessAt: '2026-09-16T12:00:00.000Z',
+  nextRefreshAt: '2026-09-16T12:15:00.000Z',
+};
+const steamGame = {
+  providerGameId: '570', appId: 570, name: 'Example Game', playtimeMinutes: 600,
+  playtimeTwoWeeksMinutes: 30, playtimeWindowsMinutes: 500, playtimeMacMinutes: 0,
+  playtimeLinuxMinutes: 100, playtimeDisconnectedMinutes: null,
+  lastPlayedAt: '2026-09-15T12:00:00.000Z', hasCommunityVisibleStats: true, iconUrl: null,
+};
+
 function psnSections() {
   return [
     { title: 'Overview', text: 'Base path: /psn\nRead cached PlayStation history, trophies and presence for the server-configured owner. Website requests never call Sony or trigger refreshes. This is an unofficial integration. All examples below are illustrative, not live account data.' },
@@ -46,6 +58,38 @@ function psnSections() {
   ];
 }
 
+function steamSections() {
+  return [
+    { title: 'Overview', text: 'Base path: /steam\nRead cached Steam profile, owned-game playtime, recent activity, achievements, global achievement rarity, and game-specific stats for the configured owner. Website requests never call Steam or trigger refreshes. All examples below are illustrative, not live account data.' },
+    { title: 'Authentication', text: 'Every data endpoint requires X-API-Key from the website server or another trusted backend. Never put API_KEYS or STEAM_WEB_API_KEY in browser JavaScript. Documentation is public. Missing or invalid read keys return HTTP 401. Data responses use Cache-Control: private, no-store. No HTTP refresh, credential, or account-selection endpoint exists.' },
+    { title: 'Requests', text: 'GET /steam/profile — public profile fields, persona state, Steam level, and current game when visible\nGET /steam/library — owned games, lifetime/platform playtime, and aggregate totals\nGET /steam/recent — games and playtime reported for Steam\'s recent two-week window\nGET /steam/games/:appId — one owned game plus achievements, global rarity, and exposed game stats\nUse the numeric appId/providerGameId from the library. No request body or pagination parameter is accepted.' },
+    { title: 'Request example', text: 'Set API_BASE_URL to the deployment origin. STEAM_API_KEY is one of this service\'s API_KEYS read keys, not the Steam Web API key.', language: 'sh', code: 'curl --fail-with-body "$API_BASE_URL/steam/library" \\\n  -H "X-API-Key: $STEAM_API_KEY"' },
+    { title: 'Profile response', text: 'communityVisibility is public, private, or unknown. personaState maps Steam\'s public state enum. currentGame is null unless Steam reports an active game. Private profiles can omit optional fields. Steam ID remains a string so 64-bit precision is never lost.', language: 'json', code: JSON.stringify({ ...steamEnvelope,
+      steamId: '76561198000000000', personaName: 'Example Player', profileUrl: 'https://steamcommunity.com/profiles/76561198000000000/',
+      avatarUrl: null, communityVisibility: 'public', personaState: 'online', lastLogoffAt: null,
+      createdAt: null, countryCode: null, steamLevel: 42,
+      currentGame: { providerGameId: '570', appId: 570, name: 'Example Game' },
+    }, null, 2) },
+    { title: 'Library response', text: 'This is Steam\'s API-visible owned-game list with played free games included. Privacy settings can hide the list. Minutes remain integer source values; missing platform splits and disconnected playtime are null. Totals sum Steam app records and are not merged with Playnite, Epic, PSN, or duplicate editions on other stores.', language: 'json', code: JSON.stringify({ ...steamEnvelope,
+      coverage: { kind: 'owned-games', complete: true, includePlayedFreeGames: true, privacyDependent: true },
+      totals: { gameCount: 1, playedGameCount: 1, totalPlaytimeMinutes: 600, windowsPlaytimeMinutes: 500, macPlaytimeMinutes: 0, linuxPlaytimeMinutes: 100, disconnectedPlaytimeMinutes: 0, gamesWithCommunityStats: 1 },
+      games: [steamGame],
+    }, null, 2) },
+    { title: 'Recent response', text: 'Steam defines this as a recent two-week window. A missing playtimeTwoWeeksMinutes is unknown, not zero. The lifetime playtime fields are repeated from Steam\'s recent-game records when available.', language: 'json', code: JSON.stringify({ ...steamEnvelope,
+      windowDays: 14, totals: { gameCount: 1, playtimeMinutes: 30 }, games: [steamGame],
+    }, null, 2) },
+    { title: 'Game detail response', text: 'Known owned games return HTTP 200 even while background enrichment is pending or when the title has no community stats. achievementStatus and statsStatus are pending, available, not-supported, private, or unavailable. Locked hidden achievements conceal their display name, description, and icon. globalPercent is Steam\'s global unlock percentage; zero is valid. rarestUnlock compares only unlocked achievements with known percentages. Raw game stats are included only when Steam exposes them and retain their API name, optional display name, and numeric value.', language: 'json', code: JSON.stringify({ ...steamEnvelope, game: steamGame,
+      gameName: 'Example Game', achievementStatus: 'available', achievementCoverage: { defined: 1, playerRows: 1, unlocked: 1, unlockedWithKnownGlobalPercent: 1 },
+      achievements: [{ apiName: 'FIRST_WIN', name: 'First Win', description: 'Win once.', hidden: false, achieved: true, unlockedAt: '2026-09-01T12:00:00.000Z', iconUrl: null, globalPercent: 12.5 }],
+      rarestUnlock: { apiName: 'FIRST_WIN', name: 'First Win', description: 'Win once.', hidden: false, achieved: true, unlockedAt: '2026-09-01T12:00:00.000Z', iconUrl: null, globalPercent: 12.5 },
+      rarityComparison: 'unlocked-achievements-with-known-global-percent', statsStatus: 'available', stats: [{ name: 'kills', displayName: 'Kills', value: 99 }],
+    }, null, 2) },
+    { title: 'Freshness and errors', text: 'Successful resources include schemaVersion, provider, accountRef, status, stale, lastAttemptAt, lastSuccessAt, and nextRefreshAt. HTTP 200 serves ready or bounded stale core resources and known owned-game details. Detail status can be pending while enrichment runs. HTTP 400 means malformed appId. HTTP 401 means missing/invalid service read key. HTTP 404 means the app is not in the cached owned library. HTTP 503 means disabled, unavailable, private, or expired data. Never render unavailable as an empty library or zero playtime.' },
+    { title: 'Refresh and privacy', text: 'Profile, library, and recent activity refresh every 15 minutes by default. Eligible per-game detail snapshots refresh every 12 hours, one game per background job. Non-presence snapshots can remain stale for 24 hours by default after a transient failure. Steam profile and Game details privacy settings control availability. An empty or private upstream response is never converted into invented data. These jobs do not consume Valorant scraping quota.' },
+    { title: 'Owner setup', text: 'Use a standard Steam user Web API key from https://steamcommunity.com/dev/apikey and the owner\'s exact 17-digit SteamID64. Keep STEAM_WEB_API_KEY in server secrets; the provider sends it in the x-webapi-key header rather than request URLs. Configure STEAM_ID, GAMING_DATA_DIR on persistent storage, optional refresh settings, and deploy with ENABLE_STEAM=false. Run npm run steam:refresh privately, inspect npm run steam:status, then enable and redeploy. The integration stores sanitized JSON snapshots only; no Steam password, session cookie, or rotating user token is collected.', language: 'sh', code: 'export STEAM_ID=76561198000000000\nexport STEAM_WEB_API_KEY=your-private-32-character-key\nnpm run steam:refresh\nnpm run steam:status\nENABLE_STEAM=true npm start' },
+  ];
+}
+
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 function markdown(title, sections) {
   return `# ${title}\n\nVersion: ${version}\n\n` + sections.map(s => `## ${s.title}\n\n${s.text}${s.code ? `\n\n\`\`\`${s.language || ''}\n${s.code}\n\`\`\`` : ''}`).join('\n\n') + '\n';
@@ -59,18 +103,23 @@ function html(title, sections, links) {
 function createGamingDocsRouter() {
   const router = express.Router();
   const setup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/psn.md';
+  const steamSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/steam.md';
   const indexSections = [
-    { title: 'Providers', text: 'Valorant: /custom/valorant — cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn — cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam, Epic and Playnite ingestion are planned, not implemented.' },
-    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[PSN setup and recovery](' + setup + ')' },
-    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant stats and PSN data require X-API-Key from a server-side consumer. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
+    { title: 'Providers', text: 'Valorant: /custom/valorant — cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn — cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam — cached profile, owned games, recent playtime, achievements, rarity and exposed game stats. Requires operator configuration.\nEpic and Playnite ingestion are planned, not implemented.' },
+    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')' },
+    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, and Steam data require X-API-Key from a server-side consumer. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
   ];
   router.get('/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API', indexSections)));
   router.get(['/', '/docs'], (req,res)=>res.type('html').send(html('Gaming Stats API', indexSections.filter(s=>s.title!=='Documentation'), [
-    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['llms.txt','/llms.txt'],['PSN setup',setup],
+    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['llms.txt','/llms.txt'],['PSN setup',setup],['Steam setup',steamSetup],
   ])));
   router.get('/psn/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — PSN', psnSections())));
   router.get(['/psn','/psn/docs'], (req,res)=>res.type('html').send(html('PSN API', psnSections(), [
     ['All providers','/docs'],['llms.txt','/psn/llms.txt'],['Setup and recovery',setup],
+  ])));
+  router.get('/steam/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — Steam', steamSections())));
+  router.get(['/steam','/steam/docs'], (req,res)=>res.type('html').send(html('Steam API', steamSections(), [
+    ['All providers','/docs'],['llms.txt','/steam/llms.txt'],['Setup and operations',steamSetup],
   ])));
   return router;
 }

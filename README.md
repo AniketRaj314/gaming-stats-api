@@ -2,23 +2,27 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.0.0** adds the PSN integration and fixes handling of Sony's unknown platform categories. PSN is live on the Railway deployment; other installations require their own owner connection and explicit activation. See the [release notes](CHANGELOG.md) and [PSN setup and API guide](docs/psn.md). Steam and Epic Games integrations are planned. Valorant uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+Version **3.1.0** adds the independently cached Steam integration. PSN remains live on the Railway deployment; Steam is implemented and awaits owner configuration and activation. See the [release notes](CHANGELOG.md), [Steam guide](docs/steam.md), and [PSN guide](docs/psn.md). Epic Games remains planned. Valorant uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
 
 | Provider | Routes | Status |
 | --- | --- | --- |
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
-| Steam / Epic | Planned | Not implemented |
+| Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/games/:appId` | Implemented; owner configuration required; disabled by default |
+| Epic | Planned | Not implemented |
 
 Playnite is being evaluated as a source for Epic and local PC games; see the
 [feasibility notes](docs/playnite.md). No Playnite sync or ingestion route exists yet.
 
-The setup and API behavior documented below apply to the Valorant integration. PSN has separate setup, storage and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
+The Valorant quick start below applies only to that provider. PSN and Steam have
+separate setup, storage, and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md)
+for the Valorant base URL change. The shared service health endpoint is `GET /health`.
 
 Public documentation is available at `/docs` and `/llms.txt` for the provider
 index, `/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
-`/custom/valorant/llms.txt` for Valorant. PSN data uses the same existing
-`X-API-Key` header as Valorant stats; only the documentation is public.
+`/custom/valorant/llms.txt` for Valorant. Steam documentation is at `/steam/docs`
+and `/steam/llms.txt`. PSN and Steam data use the same existing `X-API-Key`
+header as Valorant stats; only the documentation is public.
 
 This project serves provider data from stored snapshots through a small
 authenticated Express API. Valorant snapshots are refreshed from tracker.gg and
@@ -45,6 +49,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; optional encrypted SQLite session storage and cached snapshots for PSN
 - PSN played history, trophy summary, current presence, and per-game trophy details
+- Steam profile, owned library, recent playtime, achievements, rarity, and exposed game stats
 
 ## Requirements
 
@@ -61,6 +66,10 @@ want profile data. A PSN-only deployment can leave Valorant refresh disabled.
 PSN is optional. Enabling it additionally requires a PSN online ID, a private
 32-byte encryption key, persistent storage, and an owner-generated NPSSO used
 once by the private connection CLI. The NPSSO is never an API or website value.
+
+Steam is optional. It requires the owner's 17-digit SteamID64, a standard Steam
+user Web API key registered for the deployment domain, and public Steam Game
+details for library/playtime visibility. No Steam password or session is used.
 
 ## Valorant Quick Start
 
@@ -158,7 +167,7 @@ and generate a fresh value before reconnecting.
 | `APIFY_TOKEN` | Yes | Apify token used for tracker.gg scraping runs |
 | `APIFY_MEMORY_MB` | No | Memory assigned to each Apify actor run. Defaults to `2048` |
 | `HENRIK_API_KEY` | Yes for `refresh:profiles` | HenrikDev API key used for account profile data |
-| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant stats and PSN data routes; documentation stays public |
+| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant, PSN, and Steam data routes; documentation stays public |
 | `TRACKED_USERNAMES` | Yes for Valorant | Comma-separated Riot IDs to support in this API |
 | `PORT` | No | Port the server listens on. Defaults to `3000` |
 | `ENABLE_AUTO_REFRESH` | No | Set to `true` to enable the built-in scheduler |
@@ -174,6 +183,33 @@ and generate a fresh value before reconnecting.
 | `PSN_PRESENCE_SECONDS` | No | Presence cadence. Defaults to `60`; allowed `30–3600` |
 | `PSN_DETAILS_MINUTES` | No | Per-game trophy-detail cadence. Defaults to `60`; allowed `15–1440` |
 | `PSN_MAX_STALE_HOURS` | No | Maximum non-presence stale serving window. Defaults to `24`; allowed `1–168` |
+| `ENABLE_STEAM` | No | Enables Steam cached routes and scheduler. Defaults to `false` |
+| `STEAM_ID` | Yes for Steam | Exact 17-digit owner SteamID64 |
+| `STEAM_WEB_API_KEY` | Yes for Steam | Private 32-character hexadecimal Steam user Web API key |
+| `STEAM_LANGUAGE` | No | Achievement/schema localization language. Defaults to `english` |
+| `STEAM_REFRESH_MINUTES` | No | Profile, library, and recent cadence. Defaults to `15`; allowed `5–1440` |
+| `STEAM_DETAILS_MINUTES` | No | Per-game achievement/stat cadence. Defaults to `720`; allowed `30–10080` |
+| `STEAM_MAX_STALE_HOURS` | No | Steam stale serving window. Defaults to `24`; allowed `1–168` |
+
+## Steam Setup
+
+Register a user key at [Steam Web API key registration](https://steamcommunity.com/dev/apikey)
+and use the owner's exact SteamID64. Keep the provider disabled for the first
+refresh:
+
+```bash
+export STEAM_ID=76561198000000000
+export STEAM_WEB_API_KEY=your-private-key
+npm run steam:refresh
+npm run steam:status
+ENABLE_AUTO_REFRESH=false ENABLE_STEAM=true npm start
+```
+
+For Railway, store the key as a secret, use
+`GAMING_DATA_DIR=/app/cache/gaming`, run `railway ssh -- npm run steam:refresh`,
+confirm status, then set `ENABLE_STEAM=true` and redeploy. The full setup,
+privacy requirements, schemas, refresh behavior, and recovery process are in
+[docs/steam.md](docs/steam.md).
 
 ## How Refreshing Works
 
@@ -250,6 +286,10 @@ When PSN is enabled, mount the volume at `/app/cache`, set
 follow the interactive owner-connection sequence in [PSN Setup](#psn-setup).
 Keep `GAMING_ENCRYPTION_KEY` in Railway secrets rather than on the volume.
 
+Steam uses the same `GAMING_DATA_DIR` volume. Keep `STEAM_WEB_API_KEY` in Railway
+secrets, initialize snapshots while disabled, and use one scheduler/replica per
+snapshot directory.
+
 For a simple single-service deployment, the built-in scheduler is the easiest path.
 
 ### Docker / Generic Self-Hosting
@@ -257,12 +297,14 @@ For a simple single-service deployment, the built-in scheduler is the easiest pa
 This project works fine behind any process manager or container runtime, as long as you:
 
 - expose the same `PORT` your app listens on
-- mount persistent storage for Valorant snapshots and `GAMING_DATA_DIR` when using PSN
+- mount persistent storage for Valorant snapshots and `GAMING_DATA_DIR` when using PSN or Steam
 - always provide `API_KEYS`
 - provide `APIFY_TOKEN` and `TRACKED_USERNAMES` when using Valorant
 - provide `HENRIK_API_KEY` when using Valorant profile data
 - provide the PSN variables and private owner connection when using PSN
 - run only one PSN writer/replica for each encrypted session
+- provide `STEAM_ID` and a private `STEAM_WEB_API_KEY` when using Steam
+- run only one Steam scheduler per snapshot directory
 - decide whether each provider's scheduler should run inside the app process
 
 Self-hosting checklist:
@@ -285,6 +327,9 @@ npm run psn:connect:production
 npm run psn:status
 npm run psn:refresh
 npm run psn:disconnect
+npm run steam:status
+npm run steam:refresh
+npm run steam:refresh-game -- 570
 npm test
 npm run test:coverage
 ```
@@ -295,6 +340,7 @@ After the server is running, see:
 
 - `/docs` and `/llms.txt` for the provider index
 - `/psn/docs` and `/psn/llms.txt` for PSN
+- `/steam/docs` and `/steam/llms.txt` for Steam
 - `/custom/valorant/docs` for human-friendly usage docs
 - `/custom/valorant/llms.txt` for a compact machine-readable summary
 
@@ -322,6 +368,7 @@ Questions, ideas, or responsible security reports:
 - tracked usernames must be explicitly configured
 - snapshots are served from local cache only
 - malformed module payloads are rejected with `400`
+- upstream Steam and PSN credentials remain server-side
 
 ## License
 

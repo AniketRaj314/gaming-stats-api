@@ -29,7 +29,20 @@ if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_PSN || '')) {
     log('PSN', safeError(error));
   }
 }
-const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus });
+let steamService = null;
+let steamStatus = 'disabled';
+let stopSteam = null;
+if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_STEAM || '')) {
+  try {
+    const { createSteamProvider } = require('./providers/steam');
+    steamService = createSteamProvider({ report: message => log('STEAM', message) }).service;
+  } catch (error) {
+    const { safeError } = require('./shared/providerError');
+    steamStatus = 'unavailable';
+    log('STEAM', safeError(error));
+  }
+}
+const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus, steamService, steamStatus });
 
 (async () => {
   log(
@@ -41,6 +54,7 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnSe
   }
   app.listen(PORT, HOST, () => log('INIT', `Server listening on ${HOST}:${PORT}`));
   if (psnService) stopPsn = psnService.start();
+  if (steamService) stopSteam = steamService.start();
   if (TRACKED_USERNAMES.length === 0) {
     log('WARN', 'No tracked users configured; API will return 404 for all usernames until TRACKED_USERNAMES is set');
   } else {
@@ -61,4 +75,4 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnSe
   process.exit(1);
 });
 
-process.once('SIGTERM', () => { stopPsn?.(); process.exit(0); });
+process.once('SIGTERM', () => { stopPsn?.(); stopSteam?.(); process.exit(0); });

@@ -7,7 +7,8 @@ trophy details, all four authenticated cached routes, and persistence across a
 production restart were verified on September 16, 2026. The Node 24 runtime,
 SQLite binding, public documentation, and cached Valorant reads were also
 verified on Railway. Real token renewal and an idle-to-playing transition remain
-to be observed. Epic and Steam are outside this implementation.
+to be observed. Steam has its own independent provider and storage documented in
+[`docs/steam.md`](steam.md); Epic remains outside the PSN implementation.
 
 ## Runtime and architecture
 
