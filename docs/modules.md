@@ -4,14 +4,14 @@ This page is for contributors working on the scraper, snapshot format, or API mo
 
 If you are only consuming the API, use the public docs page instead:
 
-- `/valorant/docs`
-- `/valorant/llms.txt`
+- `/custom/valorant/docs`
+- `/custom/valorant/llms.txt`
 
 ## What a module means in this project
 
 A module is a requestable piece of cached Valorant data exposed by:
 
-- `POST /valorant/stats/:username`
+- `POST /custom/valorant/stats/:username`
 
 Today, the supported modules are:
 

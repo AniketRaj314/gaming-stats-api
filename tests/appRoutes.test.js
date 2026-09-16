@@ -41,7 +41,7 @@ const SNAPSHOT = {
   },
 };
 
-describe('app route wiring', () => {
+describe.each(['/custom/valorant', '/valorant'])('Valorant route wiring at %s', (basePath) => {
   let app;
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('app route wiring', () => {
   });
 
   test('health endpoint is public and namespaced', async () => {
-    const res = await request(app).get('/valorant/health');
+    const res = await request(app).get(`${basePath}/health`);
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
@@ -62,28 +62,30 @@ describe('app route wiring', () => {
   });
 
   test('docs endpoint is public and uses the namespaced base url', async () => {
-    const res = await request(app).get('/valorant/docs').set('Host', 'api.example.test');
+    const res = await request(app).get(`${basePath}/docs`).set('Host', 'api.example.test');
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('Base URL: http://api.example.test/valorant');
-    expect(res.text).toContain('http://api.example.test/valorant/stats/');
-    expect(res.text).toContain('http://api.example.test/valorant/health');
-    expect(res.text).toContain('http://api.example.test/valorant/llms.txt');
+    expect(res.text).toContain(`Base URL: http://api.example.test${basePath}`);
+    expect(res.text).toContain(`http://api.example.test${basePath}/stats/`);
+    expect(res.text).toContain(`http://api.example.test${basePath}/health`);
+    expect(res.text).toContain(`http://api.example.test${basePath}/llms.txt`);
+    expect(res.text).toContain(`http://api.example.test${basePath}/stats</span> routes require`);
   });
 
   test('llms endpoint is public and includes version and base url', async () => {
-    const res = await request(app).get('/valorant/llms.txt').set('Host', 'api.example.test');
+    const res = await request(app).get(`${basePath}/llms.txt`).set('Host', 'api.example.test');
 
     expect(res.status).toBe(200);
     expect(res.text).toContain(`Version: ${version}`);
-    expect(res.text).toContain('Base URL: http://api.example.test/valorant');
+    expect(res.text).toContain(`Base URL: http://api.example.test${basePath}`);
+    expect(res.text).toContain(`All http://api.example.test${basePath}/stats routes require`);
     expect(res.text).toContain('Endpoint:\n  POST /stats/:username');
     expect(res.text).toContain(`Example: ${ENCODED_USERNAME}`);
   });
 
   test('stats endpoint requires an API key', async () => {
     const res = await request(app)
-      .post(`/valorant/stats/${ENCODED_USERNAME}`)
+      .post(`${basePath}/stats/${ENCODED_USERNAME}`)
       .send({ modules: { agents: {} } });
 
     expect(res.status).toBe(401);
@@ -92,7 +94,7 @@ describe('app route wiring', () => {
 
   test('stats endpoint works with a valid API key', async () => {
     const res = await request(app)
-      .post(`/valorant/stats/${ENCODED_USERNAME}`)
+      .post(`${basePath}/stats/${ENCODED_USERNAME}`)
       .set('X-API-Key', VALID_API_KEY)
       .send({ modules: { agents: {}, totalPlaytime: {}, profile: {} } });
 
@@ -107,18 +109,63 @@ describe('app route wiring', () => {
     expect(res.body.data.profile).toEqual(SNAPSHOT.data.profile);
   });
 
-  test('legacy public routes now 404', async () => {
-    const [healthRes, docsRes, llmsRes] = await Promise.all([
-      request(app).get('/health'),
-      request(app).get('/docs'),
-      request(app).get('/llms.txt'),
-    ]);
+  test('incorrect keys cannot read snapshots', async () => {
+    const res = await request(app).post(`${basePath}/stats/${ENCODED_USERNAME}`)
+      .set('X-API-Key', 'wrong-key').send({ modules: { agents: {} } });
+    expect(res.status).toBe(401);
+    expect(readSnapshot).not.toHaveBeenCalled();
+  });
 
-    expect(healthRes.status).toBe(404);
-    expect(docsRes.status).toBe(404);
-    expect(llmsRes.status).toBe(404);
-    expect(healthRes.body).toEqual({ error: 'Not found' });
-    expect(docsRes.body).toEqual({ error: 'Not found' });
-    expect(llmsRes.body).toEqual({ error: 'Not found' });
+  test('missing snapshots still return 404', async () => {
+    readSnapshot.mockReturnValue(null);
+    const res = await request(app).post(`${basePath}/stats/${ENCODED_USERNAME}`)
+      .set('X-API-Key', VALID_API_KEY).send({ modules: { agents: {} } });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Tracked user has no cached snapshot yet');
+  });
+});
+
+describe('shared application and migration compatibility', () => {
+  test('shared health endpoint does not need a provider snapshot or API key', async () => {
+    const app = createApp();
+    const res = await request(app).get('/health');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok', version, uptime: expect.any(Number) });
+    expect(readSnapshot).not.toHaveBeenCalled();
+  });
+
+  test('old and new routes return identical data without external requests or redirects', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('Live requests forbidden in route tests'));
+    try {
+      readSnapshot.mockReturnValue({ ...SNAPSHOT, status: 'stale', sources: { tracker: { status: 'stale' } } });
+      const app = createApp({ validKeys: [VALID_API_KEY] });
+      const body = { playlist: 'unrated', modules: { agents: { limit: 1 }, rank: {}, profile: {}, maps: {}, totalPlaytime: {} } };
+      const responses = await Promise.all(['/custom/valorant', '/valorant'].map((basePath) =>
+        request(app).post(`${basePath}/stats/${ENCODED_USERNAME}`).set('X-API-Key', VALID_API_KEY).send(body)
+      ));
+      expect(responses.map((res) => res.status)).toEqual([200, 200]);
+      expect(responses[0].body).toEqual(responses[1].body);
+      expect(responses[0].body.status).toBe('stale');
+      expect(responses[0].body.data.agents).toEqual(SNAPSHOT.data.unrated.agents);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  test('an application without keys rejects both stats paths', async () => {
+    const app = createApp();
+    for (const basePath of ['/custom/valorant', '/valorant']) {
+      const res = await request(app).post(`${basePath}/stats/${ENCODED_USERNAME}`)
+        .set('X-API-Key', VALID_API_KEY).send({ modules: { agents: {} } });
+      expect(res.status).toBe(401);
+    }
+    expect(readSnapshot).not.toHaveBeenCalled();
+  });
+
+  test.each(['/docs', '/llms.txt', '/steam', '/epic', '/psn'])('unimplemented route %s returns 404', async (url) => {
+    const res = await request(createApp()).get(url);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Not found' });
   });
 });
