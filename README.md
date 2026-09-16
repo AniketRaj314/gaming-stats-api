@@ -2,13 +2,18 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.1.0** adds the independently cached Steam integration. PSN remains live on the Railway deployment; Steam is implemented and awaits owner configuration and activation. See the [release notes](CHANGELOG.md), [Steam guide](docs/steam.md), and [PSN guide](docs/psn.md). Epic Games remains planned. Valorant uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+Version **3.1.0** adds the independently cached Steam integration. Steam and PSN
+are live on the Railway deployment and remain opt-in for other installations.
+See the [release notes](CHANGELOG.md), [Steam guide](docs/steam.md), and
+[PSN guide](docs/psn.md). Epic Games remains planned. Valorant uses
+`/custom/valorant`; the original `/valorant` endpoints remain working aliases
+during frontend migration.
 
 | Provider | Routes | Status |
 | --- | --- | --- |
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
-| Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/games/:appId` | Implemented; owner configuration required; disabled by default |
+| Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/games/:appId` | Live; opt-in for other installations |
 | Epic | Planned | Not implemented |
 
 Playnite is being evaluated as a source for Epic and local PC games; see the

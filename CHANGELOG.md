@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.0 — 2026-09-16 (implementation)
+## 3.1.0 — 2026-09-16
 
 - Add an opt-in Steam provider at `/steam` with cached profile, owned library,
   recent playtime, per-game achievements, global rarity, and exposed game stats.
@@ -10,8 +10,11 @@
   private operator refresh/status commands, and provider-isolated startup.
 - Add shared human and machine-readable Steam documentation plus the complete
   setup, privacy, storage, and deployment guide.
-- Steam remains disabled until owner configuration and live verification are
-  completed. No Valorant refresh was used during implementation.
+- Deploy and activate Steam on Railway after the owner configuration and initial
+  snapshot refresh. Verify the profile, owned library, recent window, and
+  achievement details for an owned title through the authenticated routes.
+- Confirm missing read keys return 401, PSN remains ready, and cached Valorant
+  health remains available. No live Valorant refresh was used.
 - Verification: all 222 offline tests passed under Node 24 with Steam, PSN,
   Valorant, upstream HTTP, and CLI interactions mocked.
 

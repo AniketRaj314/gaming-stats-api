@@ -1,9 +1,16 @@
 # Steam provider
 
-Steam is implemented in version 3.1.0 behind `ENABLE_STEAM=false` by default.
-It uses Valve's Steam Web API, a server-side user API key, an exact SteamID64,
-and sanitized JSON snapshots. It does not require a database, Steam password,
-session cookie, OAuth token, or a helper running on the gaming PC.
+Steam is live in the deployed version 3.1.0. It remains opt-in for other
+installations, with `ENABLE_STEAM=false` as the safe default. It uses Valve's
+Steam Web API, a server-side user API key, an exact SteamID64, and sanitized JSON
+snapshots. It does not require a database, Steam password, session cookie, OAuth
+token, or a helper running on the gaming PC.
+
+The production owner profile, owned library, recent activity, and one game's
+achievement details were verified on September 16, 2026. Authentication rejects
+missing read keys, snapshots survived the activation redeploy, and cached PSN
+and Valorant health remained available. Numeric game stats remain title-specific;
+the verified title exposed achievements but did not expose numeric stats.
 
 The provider exposes the configured owner's public profile and presence, owned
 games and playtime, Steam's recent two-week playtime, per-game achievements,
