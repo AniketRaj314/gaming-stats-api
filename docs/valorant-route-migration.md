@@ -38,14 +38,19 @@ Existing automatic refresh settings remain unchanged. Starting or redeploying
 the service can trigger the existing scheduler when enabled and snapshots are
 due. Account for this separately from testing the cached HTTP endpoints.
 
-## Scope of this change
+## Scope of the original 2.2.0 routing release
 
 - Shared `GET /health` for the running backend.
 - Shared API-key middleware and a Valorant router mounted at both namespaces.
 - Existing snapshot storage, refresh schedules, scraper, and module contracts retained.
-- Steam, Epic, and PSN are not implemented or mounted yet.
+- Steam, Epic, and PSN were not implemented or mounted in 2.2.0.
 - Railway service, GitHub repository, local folder, runtime, and database setup
   are unchanged in this routing phase.
+
+The subsequent 3.0.0 release adds the opt-in `/psn` routes, Node 24, and PSN-only
+SQLite storage. See the [PSN guide](psn.md) for its separate setup and local
+verification status. Steam and Epic remain unimplemented. The Valorant route
+migration and compatibility aliases above still apply.
 
 Run `npm test -- --runInBand --silent` for offline unit and route tests. The
 provider calls in this suite are mocked; do not use the refresh scripts as tests.

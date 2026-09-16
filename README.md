@@ -2,7 +2,16 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Valorant is live. PSN is implemented behind an opt-in flag and awaits a fresh account connection and live verification; see the [PSN setup and API guide](docs/psn.md). Steam and Epic Games integrations are planned. Valorant now uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+Version **3.0.0** adds the locally verified PSN integration and fixes handling of Sony's unknown platform categories. Valorant is live; PSN remains opt-in and has not been deployed. See the [release notes](CHANGELOG.md) and [PSN setup and API guide](docs/psn.md). Steam and Epic Games integrations are planned. Valorant uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+
+| Provider | Routes | Status |
+| --- | --- | --- |
+| Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
+| PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Verified locally; disabled by default |
+| Steam / Epic | Planned | Not implemented |
+
+Playnite is being evaluated as a source for Epic and local PC games; see the
+[feasibility notes](docs/playnite.md). No Playnite sync or ingestion route exists yet.
 
 The setup and API behavior documented below apply to the Valorant integration. PSN has separate setup, storage and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
 
@@ -24,7 +33,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Total playtime across all modes
 - API key protection by default
 - Optional built-in auto-refresh scheduler
-- Simple file-based storage with no database requirement
+- File snapshots for Valorant; optional encrypted SQLite session storage and cached snapshots for PSN
 
 ## Requirements
 
@@ -101,7 +110,7 @@ If `ENABLE_AUTO_REFRESH=true`, the server can also refresh missing or due snapsh
 | `APIFY_TOKEN` | Yes | Apify token used for tracker.gg scraping runs |
 | `APIFY_MEMORY_MB` | No | Memory assigned to each Apify actor run. Defaults to `2048` |
 | `HENRIK_API_KEY` | Yes for `refresh:profiles` | HenrikDev API key used for account profile data |
-| `API_KEYS` | Yes | Comma-separated API keys accepted by `/custom/valorant/stats/*` routes |
+| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant stats and all `/psn/*` routes |
 | `TRACKED_USERNAMES` | Yes | Comma-separated Riot IDs to support in this API |
 | `PORT` | No | Port the server listens on. Defaults to `3000` |
 | `ENABLE_AUTO_REFRESH` | No | Set to `true` to enable the built-in scheduler |

@@ -1,6 +1,6 @@
 # PSN provider
 
-PSN is implemented locally for the 2.3.0 release, behind `ENABLE_PSN=false` by
+PSN is implemented locally for the 3.0.0 release, behind `ENABLE_PSN=false` by
 default. A fresh owner connection, library/summary sync, offline presence, one
 game's trophy details, and all four authenticated cached routes were verified
 locally on September 16, 2026. Deployment, real token renewal, restart recovery,
