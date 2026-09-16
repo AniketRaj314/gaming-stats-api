@@ -16,7 +16,20 @@ const HOST = '0.0.0.0';
 const VALID_KEYS = new Set(
   (process.env.API_KEYS || '').split(',').map((k) => k.trim()).filter(Boolean)
 );
-const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS] });
+let psnService = null;
+let psnStatus = 'disabled';
+let stopPsn = null;
+if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_PSN || '')) {
+  try {
+    const { createPsnProvider } = require('./providers/psn');
+    psnService = createPsnProvider({ report: message => log('PSN', message) }).service;
+  } catch (error) {
+    const { safeError } = require('./shared/providerError');
+    psnStatus = 'unavailable';
+    log('PSN', safeError(error));
+  }
+}
+const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus });
 
 (async () => {
   log(
@@ -26,6 +39,8 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS] });
   if (VALID_KEYS.size === 0) {
     throw new Error('API_KEYS must be configured before starting the server');
   }
+  app.listen(PORT, HOST, () => log('INIT', `Server listening on ${HOST}:${PORT}`));
+  if (psnService) stopPsn = psnService.start();
   if (TRACKED_USERNAMES.length === 0) {
     log('WARN', 'No tracked users configured; API will return 404 for all usernames until TRACKED_USERNAMES is set');
   } else {
@@ -41,10 +56,9 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS] });
     log('DECISION', 'Auto refresh is disabled; background scheduler will not start');
     log('AUTOREFRESH', 'Automatic refresh scheduler disabled');
   }
-  app.listen(PORT, HOST, () => {
-    log('INIT', `Server listening on ${HOST}:${PORT}`);
-  });
 })().catch((error) => {
   log('ERROR', `Fatal startup error: ${error.stack || error.message}`);
   process.exit(1);
 });
+
+process.once('SIGTERM', () => { stopPsn?.(); process.exit(0); });

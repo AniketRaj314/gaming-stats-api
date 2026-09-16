@@ -610,7 +610,7 @@ const data = await response.json();`,
         <a class="link-chip" href="${escapeHtml(baseUrl)}">Base URL: ${escapeHtml(baseUrl)}</a>
         <a class="link-chip" href="${escapeHtml(healthUrl)}">Health: ${escapeHtml(healthUrl)}</a>
         <a class="link-chip" href="${escapeHtml(llmsUrl)}">LLMs.txt</a>
-        <a class="link-chip" href="https://github.com/AniketRaj314/valorant-stats-api" target="_blank" rel="noreferrer">GitHub repository</a>
+        <a class="link-chip" href="https://github.com/AniketRaj314/gaming-stats-api" target="_blank" rel="noreferrer">GitHub repository</a>
       </div>
     </section>
 
