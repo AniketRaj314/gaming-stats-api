@@ -18,9 +18,9 @@
   authenticated cached PSN routes passed local checks. No live Valorant calls.
 - Deployed to Railway with Node 24 and the existing persistent volume. Public
   documentation, PSN authentication boundaries, SQLite support, and cached
-  Valorant reads were verified. PSN activation requires a destination owner
-  connection; real token renewal, restart recovery, and an idle-to-playing
-  transition remain to be observed.
+  Valorant reads were verified. The production owner connection, initial sync,
+  all four authenticated routes, and persistence across a restart were verified.
+  Real token renewal and an idle-to-playing transition remain to be observed.
 - Require Railway owner connections to use its full interactive shell. Railway's
   command-mode SSH can echo credential input locally without forwarding it; the
   documented production path now guards against that unsafe invocation.

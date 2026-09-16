@@ -1,13 +1,13 @@
 # PSN provider
 
-PSN is included in the deployed 3.0.0 release, behind `ENABLE_PSN=false` by
-default. Each installation requires its own owner connection and activation.
+PSN is live in the deployed 3.0.0 release. It remains opt-in for other
+installations because each one requires its own owner connection and activation.
 A fresh owner connection, library/summary sync, offline presence, one game's
-trophy details, and all four authenticated cached routes were verified locally
-on September 16, 2026. The Node 24 runtime, SQLite binding, public documentation,
-and cached Valorant reads were also verified on Railway. Real token renewal,
-production restart recovery, and an idle-to-playing transition remain to be
-verified. Epic and Steam are outside this implementation.
+trophy details, all four authenticated cached routes, and persistence across a
+production restart were verified on September 16, 2026. The Node 24 runtime,
+SQLite binding, public documentation, and cached Valorant reads were also
+verified on Railway. Real token renewal and an idle-to-playing transition remain
+to be observed. Epic and Steam are outside this implementation.
 
 ## Runtime and architecture
 
