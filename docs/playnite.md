@@ -1,7 +1,8 @@
 # Playnite feasibility
 
-Research only, September 16, 2026. No extension, ingestion endpoint, or Epic/local
-game provider has been implemented. Finish the PSN phase before starting this.
+Research only, September 16, 2026. The direct Epic provider is implemented
+separately; no Playnite extension, ingestion endpoint, or local-game provider has
+been implemented.
 
 ## What it can provide
 
@@ -26,14 +27,14 @@ existing connection to Gaming Stats API.
 
 ## Proposed integration
 
-1. Playnite on the gaming PC imports Epic and tracks manually added games.
+1. Playnite on the gaming PC tracks manually added and other approved local games.
 2. A small extension reads approved game fields through the SDK and sends a
    versioned snapshot over HTTPS to a dedicated authenticated ingestion endpoint.
 3. Gaming Stats API validates and stores the snapshot; the website reads cached
    data even when the PC is off, with the last successful sync time displayed.
 
-Keep Epic account credentials inside the local integration. Give the exporter
-its own revocable upload credential, separate from website read keys. Export an
+Keep store credentials inside their existing local integrations. Give the
+exporter its own revocable upload credential, separate from website read keys. Export an
 explicit allowlist of game fields, excluding tokens, launch commands, executable
 paths, and private/hidden entries unless explicitly selected for publication.
 The PC only needs outbound HTTPS; the proposal requires no publicly reachable
@@ -45,9 +46,9 @@ Epic totals and locally tracked totals as independent playtime. A Playnite entry
 or install flag is not proof of a purchase or current entitlement. Missing data
 must stay unknown rather than becoming a claimed zero.
 
-The planned `/epic` namespace can still serve Epic records sourced from Playnite.
-Choose a separate local-games namespace when implementing that provider; do not
-place non-Epic records under `/epic`. Route names are not finalized here.
+The `/epic` namespace uses direct Epic snapshots. Choose a separate local-games
+namespace when implementing Playnite ingestion; do not place non-Epic records
+under `/epic`. Route names are not finalized here.
 
 ## Limits and next check
 

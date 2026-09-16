@@ -1,11 +1,12 @@
 {
   "name": "gaming-stats-api",
-  "version": "3.1.0",
-  "description": "Self-hostable gaming stats API with cached Valorant, PSN, and Steam integrations",
+  "version": "3.2.0",
+  "description": "Self-hostable gaming stats API with cached Valorant, PSN, Steam, and Epic integrations",
   "keywords": [
     "valorant",
     "steam",
     "psn",
+    "epic-games",
     "gaming",
     "api",
     "stats",
@@ -32,8 +33,14 @@
     "steam:status": "node scripts/steam/cli.js status",
     "steam:refresh": "node scripts/steam/cli.js refresh",
     "steam:refresh-game": "node scripts/steam/cli.js refresh-game",
+    "epic:connect": "node scripts/epic/cli.js connect",
+    "epic:connect:production": "EPIC_SECURE_TTY=1 node scripts/epic/cli.js connect",
+    "epic:refresh": "node scripts/epic/cli.js refresh",
+    "epic:status": "node scripts/epic/cli.js status",
+    "epic:disconnect": "node scripts/epic/cli.js disconnect",
     "test:psn": "jest tests/psn --runInBand",
-    "test:steam": "jest tests/steam --runInBand"
+    "test:steam": "jest tests/steam --runInBand",
+    "test:epic": "jest tests/epic --runInBand"
   },
   "jest": {
     "testEnvironment": "node",
@@ -48,7 +55,8 @@
     "express": "^4.22.1"
   },
   "overrides": {
-    "path-to-regexp": "0.1.13"
+    "path-to-regexp": "0.1.13",
+    "qs": "6.16.0"
   },
   "engines": {
     "node": "24.x"

@@ -12,7 +12,7 @@ const { log } = require('./logger');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
 
-// Auth middleware — only guards stats routes
+// Shared read keys guard every provider data route; documentation remains public.
 const VALID_KEYS = new Set(
   (process.env.API_KEYS || '').split(',').map((k) => k.trim()).filter(Boolean)
 );
@@ -42,7 +42,21 @@ if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_STEAM || '')) {
     log('STEAM', safeError(error));
   }
 }
-const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus, steamService, steamStatus });
+let epicService = null;
+let epicStatus = 'disabled';
+let stopEpic = null;
+if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_EPIC || '')) {
+  try {
+    const { createEpicProvider } = require('./providers/epic');
+    epicService = createEpicProvider({ report: message => log('EPIC', message) }).service;
+  } catch (error) {
+    const { safeError } = require('./shared/providerError');
+    epicStatus = 'unavailable';
+    log('EPIC', safeError(error));
+  }
+}
+const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus,
+  steamService, steamStatus, epicService, epicStatus });
 
 (async () => {
   log(
@@ -55,6 +69,7 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnSe
   app.listen(PORT, HOST, () => log('INIT', `Server listening on ${HOST}:${PORT}`));
   if (psnService) stopPsn = psnService.start();
   if (steamService) stopSteam = steamService.start();
+  if (epicService) stopEpic = epicService.start();
   if (TRACKED_USERNAMES.length === 0) {
     log('WARN', 'No tracked users configured; API will return 404 for all usernames until TRACKED_USERNAMES is set');
   } else {
@@ -75,4 +90,4 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnSe
   process.exit(1);
 });
 
-process.once('SIGTERM', () => { stopPsn?.(); stopSteam?.(); process.exit(0); });
+process.once('SIGTERM', () => { stopPsn?.(); stopSteam?.(); stopEpic?.(); process.exit(0); });

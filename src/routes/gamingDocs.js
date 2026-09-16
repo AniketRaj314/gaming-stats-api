@@ -36,6 +36,15 @@ const steamGame = {
   playtimeLinuxMinutes: 100, playtimeDisconnectedMinutes: null,
   lastPlayedAt: '2026-09-15T12:00:00.000Z', hasCommunityVisibleStats: true, iconUrl: null,
 };
+const epicEnvelope = {
+  schemaVersion: 1, provider: 'epic', accountRef: 'owner', status: 'ready', stale: false,
+  lastAttemptAt: '2026-09-17T12:00:00.000Z', lastSuccessAt: '2026-09-17T12:00:00.000Z',
+  nextRefreshAt: '2026-09-17T12:15:00.000Z',
+};
+const epicGame = {
+  providerGameId: 'E'.repeat(43), name: 'Example Game', imageUrl: null,
+  playtimeMinutes: 90.5, playtimeStatus: 'known', lastPlayedAt: null,
+};
 
 function psnSections() {
   return [
@@ -90,6 +99,27 @@ function steamSections() {
   ];
 }
 
+function epicSections() {
+  return [
+    { title: 'Overview', text: 'Base path: /epic\nRead a cached Epic Games owner library with claimed and uninstalled PC base games, catalog artwork, and Epic-reported playtime. Website requests never call Epic or trigger refreshes. This is an unofficial launcher-protocol integration and can require reconnection if Epic changes or revokes the session. Examples are illustrative, not live account data.' },
+    { title: 'Authentication', text: 'Every data endpoint requires X-API-Key from a trusted website server or backend proxy. Documentation is public. Missing or invalid read keys return HTTP 401. Data responses use Cache-Control: private, no-store. The read key cannot connect, refresh, disconnect, select an account, or retrieve credentials. Never put API_KEYS, Epic authorization codes, or session tokens in browser JavaScript.' },
+    { title: 'Requests', text: 'GET /epic/library — complete cached owned base-game collection, coverage and totals\nGET /epic/games/:gameId — one cached owned game\nUse providerGameId from the library. It is an opaque 43-character identifier. No request body or pagination argument is accepted; the refresh worker completes upstream pagination before publication.' },
+    { title: 'Request example', text: 'EPIC_API_KEY is one of this service\'s API_KEYS read keys, not an Epic credential.', language: 'sh', code: 'curl --fail-with-body "$API_BASE_URL/epic/library" \\\n  -H "X-API-Key: $EPIC_API_KEY"' },
+    { title: 'Library response', text: 'coverage.inventoryComplete and catalogComplete describe the published snapshot. Epic playtime is converted from integer seconds to minutes without early rounding. playtimeStatus is known, unknown, ambiguous, or unavailable. A missing Epic playtime record remains null/unknown; it never becomes zero. Explicit upstream zero remains known zero. Totals sum only known records and do not merge Steam, Playnite, PSN, editions, or aliases. Add-ons, private sandboxes, Unreal Engine assets, records without an app artifact, and unknown classifications are excluded and counted.', language: 'json', code: JSON.stringify({ ...epicEnvelope,
+      coverage: { kind: 'owned-pc-base-games', inventoryComplete: true, catalogComplete: true, catalogStale: false,
+        playtimeStatus: 'available', missingPlaytimeMeans: 'unknown', unmatchedPlaytimeRecords: 0,
+        excluded: { addons: 0, engineAssets: 0, unknownClassification: 0, privateRecords: 0, noAppArtifactRecords: 0 } },
+      totals: { gameCount: 1, playedGameCount: 1, knownPlaytimeGameCount: 1, unknownPlaytimeGameCount: 0,
+        ambiguousPlaytimeGameCount: 0, totalPlaytimeMinutes: 90.5 }, games: [epicGame],
+    }, null, 2) },
+    { title: 'Game response', text: 'A valid ID that is absent from the current cached library returns HTTP 404. The game endpoint repeats the library snapshot freshness metadata and returns the same normalized game record. Epic achievements, current presence, installation state, and reliable last-played time are not included in this release.', language: 'json', code: JSON.stringify({ ...epicEnvelope, game: epicGame }, null, 2) },
+    { title: 'Freshness and errors', text: 'HTTP 200 serves ready or bounded stale snapshots. HTTP 400 means malformed gameId. HTTP 401 means a missing or invalid service read key. HTTP 404 means the ID is not in the cached Epic base-game library. HTTP 503 means disabled, not-configured, reconnect-required, unavailable, or expired data. Never display unavailable data as an empty library or zero playtime. status, stale, lastAttemptAt, lastSuccessAt, and nextRefreshAt describe the snapshot.' },
+    { title: 'Refresh and storage', text: 'Library and playtime target a 15-minute cadence. Sanitized catalog metadata is cached for 24 hours. Completed snapshots can remain stale for up to 24 hours after a transient failure. Jobs use persistent due times, bounded requests, backoff, a single SQLite writer lock, and one controlled token recovery attempt. Rotating access and refresh tokens are AES-256-GCM encrypted in a separate private SQLite file on GAMING_DATA_DIR. Raw Epic responses and credentials are not published. Run one always-on Railway replica per session.' },
+    { title: 'Owner connection', text: 'Deploy with ENABLE_EPIC=false. Configure EPIC_EXPECTED_DISPLAY_NAME, GAMING_DATA_DIR on the persistent volume, and the existing private GAMING_ENCRYPTION_KEY. Open a full railway ssh shell and run npm run epic:connect:production. The CLI prints an official epicgames.com login URL. Sign in and complete 2FA only on Epic, then paste only the returned authorizationCode or Epic JSON into the hidden terminal prompt. Do not paste it into chat, command arguments, screenshots, or website routes. Run epic:refresh and epic:status before enabling the provider. The gaming PC does not need to remain running.', language: 'sh', code: 'railway ssh\n# After the remote prompt appears:\nnpm run epic:connect:production\nnpm run epic:refresh\nnpm run epic:status\nexit\nrailway variable set ENABLE_EPIC=true' },
+    { title: 'Disconnect and recovery', text: 'npm run epic:disconnect revokes the current Epic access session before deleting local credentials, cached metadata, and snapshots. If the session cannot be renewed or revoked, fix connectivity and retry. npm run epic:disconnect -- --local-only is an explicit recovery option that removes local data but cannot revoke Epic remotely; then use Epic account security controls. A token rotation interrupted before durable replacement becomes reconnect-required rather than blindly retrying an old token.' },
+  ];
+}
+
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 function markdown(title, sections) {
   return `# ${title}\n\nVersion: ${version}\n\n` + sections.map(s => `## ${s.title}\n\n${s.text}${s.code ? `\n\n\`\`\`${s.language || ''}\n${s.code}\n\`\`\`` : ''}`).join('\n\n') + '\n';
@@ -104,14 +134,15 @@ function createGamingDocsRouter() {
   const router = express.Router();
   const setup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/psn.md';
   const steamSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/steam.md';
+  const epicSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/epic.md';
   const indexSections = [
-    { title: 'Providers', text: 'Valorant: /custom/valorant — cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn — cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam — cached profile, owned games, recent playtime, achievements, rarity and exposed game stats. Requires operator configuration.\nEpic and Playnite ingestion are planned, not implemented.' },
-    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')' },
-    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, and Steam data require X-API-Key from a server-side consumer. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
+    { title: 'Providers', text: 'Valorant: /custom/valorant — cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn — cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam — cached profile, owned games, recent playtime, achievements, rarity and exposed game stats. Requires operator configuration.\nEpic: /epic — cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite ingestion for local games remains planned.' },
+    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')' },
+    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, Steam, and Epic data require X-API-Key from a server-side consumer. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
   ];
   router.get('/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API', indexSections)));
   router.get(['/', '/docs'], (req,res)=>res.type('html').send(html('Gaming Stats API', indexSections.filter(s=>s.title!=='Documentation'), [
-    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['llms.txt','/llms.txt'],['PSN setup',setup],['Steam setup',steamSetup],
+    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['llms.txt','/llms.txt'],['PSN setup',setup],['Steam setup',steamSetup],['Epic setup',epicSetup],
   ])));
   router.get('/psn/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — PSN', psnSections())));
   router.get(['/psn','/psn/docs'], (req,res)=>res.type('html').send(html('PSN API', psnSections(), [
@@ -120,6 +151,10 @@ function createGamingDocsRouter() {
   router.get('/steam/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — Steam', steamSections())));
   router.get(['/steam','/steam/docs'], (req,res)=>res.type('html').send(html('Steam API', steamSections(), [
     ['All providers','/docs'],['llms.txt','/steam/llms.txt'],['Setup and operations',steamSetup],
+  ])));
+  router.get('/epic/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — Epic', epicSections())));
+  router.get(['/epic','/epic/docs'], (req,res)=>res.type('html').send(html('Epic API', epicSections(), [
+    ['All providers','/docs'],['llms.txt','/epic/llms.txt'],['Setup and operations',epicSetup],
   ])));
   return router;
 }

@@ -163,10 +163,15 @@ describe('shared application and migration compatibility', () => {
     expect(readSnapshot).not.toHaveBeenCalled();
   });
 
-  test.each(['/epic'])('unimplemented route %s returns 404', async (url) => {
-    const res = await request(createApp()).get(url);
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Not found' });
+  test('Epic being unavailable leaves Valorant reads operational', async () => {
+    readSnapshot.mockReturnValue(SNAPSHOT);
+    const app = createApp({ validKeys: [VALID_API_KEY], epicStatus: 'unavailable' });
+    const epic = await request(app).get('/epic/library').set('X-API-Key', VALID_API_KEY);
+    expect(epic.status).toBe(503);
+    expect(epic.body.status).toBe('unavailable');
+    const valorant = await request(app).post(`/custom/valorant/stats/${ENCODED_USERNAME}`)
+      .set('X-API-Key', VALID_API_KEY).send({ modules: { agents: {} } });
+    expect(valorant.status).toBe(200);
   });
 
   test('Steam being unavailable leaves Valorant reads operational', async () => {
