@@ -1,6 +1,10 @@
-# Valorant Stats API
+# Gaming Stats API
 
-A reusable, self-hostable Valorant stats API for tracked Riot IDs.
+A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
+
+Valorant is currently implemented. Steam, Epic Games, and PlayStation Network (PSN) integrations are planned; their implementation will follow the platform research handoffs. Valorant now uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+
+The setup and API behavior documented below currently apply to the Valorant integration. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
 
 This project refreshes player data from tracker.gg through Apify, stores snapshot files on disk, and serves those cached snapshots through a small authenticated Express API. It is designed for personal sites, side projects, dashboards, and self-hosted community tools where you want predictable API responses without scraping on every request.
 
@@ -8,8 +12,8 @@ If you want to fork this for your own player page, use it as a base for a custom
 
 For request examples and API usage, open the built-in docs page after the server starts:
 
-- local: `http://localhost:3000/valorant/docs`
-- deployed: `https://your-domain.example/valorant/docs`
+- local: `http://localhost:3000/custom/valorant/docs`
+- deployed: `https://your-domain.example/custom/valorant/docs`
 
 ## What You Get
 
@@ -97,7 +101,7 @@ If `ENABLE_AUTO_REFRESH=true`, the server can also refresh missing or due snapsh
 | `APIFY_TOKEN` | Yes | Apify token used for tracker.gg scraping runs |
 | `APIFY_MEMORY_MB` | No | Memory assigned to each Apify actor run. Defaults to `2048` |
 | `HENRIK_API_KEY` | Yes for `refresh:profiles` | HenrikDev API key used for account profile data |
-| `API_KEYS` | Yes | Comma-separated API keys accepted by `/valorant/stats/*` routes |
+| `API_KEYS` | Yes | Comma-separated API keys accepted by `/custom/valorant/stats/*` routes |
 | `TRACKED_USERNAMES` | Yes | Comma-separated Riot IDs to support in this API |
 | `PORT` | No | Port the server listens on. Defaults to `3000` |
 | `ENABLE_AUTO_REFRESH` | No | Set to `true` to enable the built-in scheduler |
@@ -208,8 +212,8 @@ npm run test:coverage
 
 After the server is running, see:
 
-- `/valorant/docs` for human-friendly usage docs
-- `/valorant/llms.txt` for a compact machine-readable summary
+- `/custom/valorant/docs` for human-friendly usage docs
+- `/custom/valorant/llms.txt` for a compact machine-readable summary
 
 ## Forking and Contributing
 

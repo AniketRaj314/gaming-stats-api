@@ -32,7 +32,7 @@ function buildLlmsTxt(baseUrl) {
   const sampleUsername = TRACKED_USERNAMES[0] || 'PlayerName#TAG';
   const encodedSampleUsername = encodeURIComponent(sampleUsername);
 
-  return `# Valorant Stats API
+  return `# Gaming Stats API — Valorant
 
 > A reusable, self-hostable Valorant stats API for tracked Riot IDs.
 
@@ -47,7 +47,7 @@ Version: ${version}
 - never scrapes tracker.gg during request handling
 
 ## Authentication
-All /valorant/stats routes require an API key in the X-API-Key request header.
+All ${baseUrl}/stats routes require an API key in the X-API-Key request header.
 
 Example:
   X-API-Key: your-key-here
@@ -381,7 +381,7 @@ const data = await response.json();`,
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Valorant Stats API Docs</title>
+  <title>Gaming Stats API — Valorant Docs</title>
   <style>
     :root {
       --bg: #0d1016;
@@ -598,7 +598,7 @@ const data = await response.json();`,
   <div class="wrap">
     <section class="hero">
       <div class="eyebrow">Self-hostable • Snapshot-backed • Authenticated</div>
-      <h1>Valorant Stats API</h1>
+      <h1>Gaming Stats API — Valorant</h1>
       <p class="muted"><strong>Version:</strong> <span class="inline-code">${escapeHtml(version)}</span></p>
       <p class="hero-copy">
         A reusable API for tracked Riot IDs that refreshes stats through Apify, enriches profile data through HenrikDev and Valorant API, stores snapshots on disk, and serves clean cached responses to your app, site, or dashboard.
@@ -622,7 +622,7 @@ const data = await response.json();`,
       </section>
       <section class="card">
         <h3>Authentication</h3>
-        <p>All <span class="inline-code">/valorant/stats</span> routes require <span class="inline-code">X-API-Key</span>.</p>
+        <p>All <span class="inline-code">${escapeHtml(baseUrl)}/stats</span> routes require <span class="inline-code">X-API-Key</span>.</p>
         <pre class="code code--active"><code>X-API-Key: your-api-key</code></pre>
         <p>API keys are mandatory by design so accidental public deployments do not fail open.</p>
       </section>

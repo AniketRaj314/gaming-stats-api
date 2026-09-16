@@ -1,30 +1,24 @@
 const express = require('express');
 const { version } = require('../package.json');
 
-const valorantRouter = require('./routes/valorant');
-const docsRouter = require('./routes/docs');
+const { requireApiKey } = require('./shared/auth');
+const { createValorantRouter } = require('./providers/valorant');
 
 function createApp({ startTime = Date.now(), validKeys = [] } = {}) {
   const app = express();
-  const VALID_KEYS = new Set(validKeys.map((key) => key.trim()).filter(Boolean));
+  const auth = requireApiKey(validKeys);
 
   app.use(express.json());
 
-  app.get('/valorant/health', (req, res) => {
+  app.get('/health', (req, res) => {
     res.json({ status: 'ok', version, uptime: Math.floor((Date.now() - startTime) / 1000) });
   });
 
-  // Auth middleware — only guards stats routes
-  app.use('/valorant/stats', (req, res, next) => {
-    const key = req.headers['x-api-key'];
-    if (!key || !VALID_KEYS.has(key)) {
-      return res.status(401).json({ error: 'Invalid or missing API key' });
-    }
-    next();
-  });
-
-  app.use('/valorant', valorantRouter);
-  app.use('/valorant', docsRouter);
+  // Both mounts use the same router and snapshots. The old mount remains during
+  // frontend migration; serving it directly also preserves POST request bodies.
+  const valorant = createValorantRouter({ auth, startTime });
+  app.use('/custom/valorant', valorant);
+  app.use('/valorant', valorant);
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

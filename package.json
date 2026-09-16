@@ -1,7 +1,7 @@
 {
-  "name": "valorant-stats-api",
-  "version": "2.1.3",
-  "description": "Valorant stats API using Apify Playwright scraper",
+  "name": "gaming-stats-api",
+  "version": "2.2.0",
+  "description": "Self-hostable gaming stats API with cached Valorant stats and planned Steam, Epic Games, and PSN integrations",
   "keywords": [
     "valorant",
     "api",
