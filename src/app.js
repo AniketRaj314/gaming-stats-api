@@ -3,8 +3,9 @@ const { version } = require('../package.json');
 
 const { requireApiKey } = require('./shared/auth');
 const { createValorantRouter } = require('./providers/valorant');
+const { createPsnRouter } = require('./providers/psn/routes');
 
-function createApp({ startTime = Date.now(), validKeys = [] } = {}) {
+function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled' } = {}) {
   const app = express();
   const auth = requireApiKey(validKeys);
 
@@ -19,6 +20,7 @@ function createApp({ startTime = Date.now(), validKeys = [] } = {}) {
   const valorant = createValorantRouter({ auth, startTime });
   app.use('/custom/valorant', valorant);
   app.use('/valorant', valorant);
+  app.use('/psn', auth, createPsnRouter({ service: psnService, unavailableStatus: psnStatus }));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

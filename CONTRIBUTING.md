@@ -6,7 +6,7 @@ Forks, experiments, and small focused contributions are all welcome. If you are 
 
 ## Before You Start
 
-- use Node.js 18+
+- use Node.js 24 LTS
 - create a local `.env` from `.env.example`
 - set a valid `APIFY_TOKEN`
 - set at least one `API_KEYS` value
@@ -61,3 +61,11 @@ If you find a security issue, please avoid opening a public issue with exploit d
 
 - Email: `dev@aniketraj.me`
 - Telegram: `@AniketRaj314`
+
+## Provider work
+
+PSN setup, storage, API contracts, and offline test commands are documented in
+[`docs/psn.md`](docs/psn.md). Keep Epic and Steam separate until their implementation
+phases. Public provider routes must stay snapshot-only. Run PSN-specific tests
+during PSN work and a combined regression when shared routing or startup changes.
+Never use live Valorant refresh commands as ordinary tests.

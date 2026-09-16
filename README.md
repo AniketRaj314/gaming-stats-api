@@ -2,9 +2,9 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Valorant is currently implemented. Steam, Epic Games, and PlayStation Network (PSN) integrations are planned; their implementation will follow the platform research handoffs. Valorant now uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
+Valorant is live. PSN is implemented behind an opt-in flag and awaits a fresh account connection and live verification; see the [PSN setup and API guide](docs/psn.md). Steam and Epic Games integrations are planned. Valorant now uses `/custom/valorant`; the original `/valorant` endpoints remain working aliases during frontend migration.
 
-The setup and API behavior documented below currently apply to the Valorant integration. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
+The setup and API behavior documented below apply to the Valorant integration. PSN has separate setup, storage and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md) for the base URL change. The shared service health endpoint is `GET /health`.
 
 This project refreshes player data from tracker.gg through Apify, stores snapshot files on disk, and serves those cached snapshots through a small authenticated Express API. It is designed for personal sites, side projects, dashboards, and self-hosted community tools where you want predictable API responses without scraping on every request.
 
@@ -30,7 +30,7 @@ For request examples and API usage, open the built-in docs page after the server
 
 Before you run this project, you need:
 
-- Node.js 18+
+- Node.js 24 LTS
 - an [Apify](https://apify.com/) account and `APIFY_TOKEN`
 - a [HenrikDev](https://docs.henrikdev.xyz/valorant/) API key if you want profile data
 - at least one self-generated API key in `API_KEYS`
