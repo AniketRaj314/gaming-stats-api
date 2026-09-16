@@ -10,6 +10,15 @@ test('library exposes known record totals and coverage, without treating unknown
   expect(JSON.stringify(result)).not.toContain('accountId');
 });
 test('duplicate game IDs fail instead of multiplying totals', () => expect(() => n.library([...f.games, ...f.games])).toThrow('invalid-game-record'));
+test('Sony unknown categories retain records and playtime without guessing a platform', () => {
+  const result = n.library([...f.games, { ...f.games[0], titleId: 'UNKNOWN123_00', category: 'unknown', playDuration: 'PT30M' }]);
+  expect(result.games.find(g => g.providerGameId === 'UNKNOWN123_00')).toMatchObject({ platform: null, playtimeMinutes: 30 });
+  expect(result.totals).toMatchObject({ recordCount: 2, unknownPlatformRecords: 1, knownPlaytimeRecords: 2 });
+  expect(result.totals.knownRecordPlaytimeMinutes).toBe(n.durationMinutes(f.games[0].playDuration) + 30);
+});
+test.each([undefined, null, {}, 'unexpected'])('malformed or unsupported category %p still rejects the snapshot', category => {
+  expect(() => n.library([{ ...f.games[0], category }])).toThrow('invalid-game-record');
+});
 test.each(['http://image.api.playstation.com/a', 'https://evil.test/a', 'https://user:pass@image.api.playstation.com/a', 'https://image.api.playstation.com:8443/a', 'https://image.api.playstation.com/a?token=x'])('rejects unsafe artwork %s', url => expect(n.artwork(url)).toBeNull());
 test('presence prefers nested status and discards stale titles when offline', () => {
   expect(n.presence(f.playing).activity).toBe('playing');

@@ -34,12 +34,12 @@ function library(records) {
   const seen = new Set();
   const games = records.map((r) => {
     const id = identifier(r.titleId);
-    if (seen.has(id) || !text(r.name) || !['ps4_game', 'ps5_native_game'].includes(r.category)) throw new ProviderError('invalid-game-record', 'library');
+    if (seen.has(id) || !text(r.name) || !['ps4_game', 'ps5_native_game', 'unknown'].includes(r.category)) throw new ProviderError('invalid-game-record', 'library');
     seen.add(id);
     const conceptId = typeof r.concept?.id === 'string' || Number.isSafeInteger(r.concept?.id) ? String(r.concept.id) : null;
     return {
       providerGameId: id, conceptId: conceptId && /^\d+$/.test(conceptId) ? conceptId : null,
-      canonicalGameId: null, name: r.name, platform: r.category === 'ps4_game' ? 'PS4' : 'PS5',
+      canonicalGameId: null, name: r.name, platform: r.category === 'ps4_game' ? 'PS4' : r.category === 'ps5_native_game' ? 'PS5' : null,
       playtimeMinutes: durationMinutes(r.playDuration), playCount: integer(r.playCount),
       firstPlayedAt: date(r.firstPlayedDateTime), lastPlayedAt: date(r.lastPlayedDateTime),
       activityStatus: 'played-history', artwork: { url: artwork(r.imageUrl), width: null, height: null },
@@ -53,6 +53,7 @@ function library(records) {
       knownRecordPlaytimeMinutes: games.reduce((sum, g) => sum + (g.playtimeMinutes ?? 0), 0),
       knownPlaytimeRecords: games.filter(g => g.playtimeMinutes !== null).length,
       unknownPlaytimeRecords: games.filter(g => g.playtimeMinutes === null).length,
+      unknownPlatformRecords: games.filter(g => g.platform === null).length,
     }, games,
   };
 }

@@ -1,8 +1,11 @@
 # PSN provider
 
 PSN is implemented locally for the 2.3.0 release, behind `ENABLE_PSN=false` by
-default. Live verification with a fresh owner connection and deployment are still
-required. Epic and Steam are outside this implementation.
+default. A fresh owner connection, library/summary sync, offline presence, one
+game's trophy details, and all four authenticated cached routes were verified
+locally on September 16, 2026. Deployment, real token renewal, restart recovery,
+and an idle-to-playing transition remain to be verified. Epic and Steam are
+outside this implementation.
 
 ## Runtime and architecture
 
@@ -123,6 +126,10 @@ empty set. Successful empty mapping is `no-visible-synced-set`.
 - This is **played history**, not a purchase inventory or an unplayed backlog.
 - `playtimeMinutes` retains fractional precision. Missing/malformed duration is
   `null`; explicit zero is `0`. Totals report known record time and unknown count.
+- Sony can return `category: unknown` even with the PS4/PS5 history filter. These
+  records retain their playtime and use `platform: null`; totals include
+  `unknownPlatformRecords`. Coverage platforms describe the requested filter,
+  not a guaranteed platform classification for every returned record.
 - Record totals are not deduplicated cross-platform lifetime hours. Concepts are
   grouping hints; source title/platform records remain separate. No fuzzy merges
   or automatic Steam/Epic cross-store links are implemented.
