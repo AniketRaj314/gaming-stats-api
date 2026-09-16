@@ -1,11 +1,13 @@
 # PSN provider
 
-PSN is implemented locally for the 3.0.0 release, behind `ENABLE_PSN=false` by
-default. A fresh owner connection, library/summary sync, offline presence, one
-game's trophy details, and all four authenticated cached routes were verified
-locally on September 16, 2026. Deployment, real token renewal, restart recovery,
-and an idle-to-playing transition remain to be verified. Epic and Steam are
-outside this implementation.
+PSN is included in the deployed 3.0.0 release, behind `ENABLE_PSN=false` by
+default. Each installation requires its own owner connection and activation.
+A fresh owner connection, library/summary sync, offline presence, one game's
+trophy details, and all four authenticated cached routes were verified locally
+on September 16, 2026. The Node 24 runtime, SQLite binding, public documentation,
+and cached Valorant reads were also verified on Railway. Real token renewal,
+production restart recovery, and an idle-to-playing transition remain to be
+verified. Epic and Steam are outside this implementation.
 
 ## Runtime and architecture
 
@@ -234,9 +236,22 @@ from Git; never upload a local session as part of the application image.
    real token renewal and a real idle-to-playing transition before calling it proven.
 6. Integrate the portfolio as a consumer after the backend contract is verified.
 
-No hosted credentials, configuration or production deployment are created by the
-local build. The old prototype's observed counts are historical context, not an
-assertion about this branch's live results.
+For the repository's linked Railway production service, run this from your own
+terminal after deploying and configuring the production variables:
+
+```sh
+railway ssh -- node scripts/psn/cli.js connect
+```
+
+Paste the owner NPSSO into the hidden prompt. This executes inside the deployed
+container and saves the encrypted session on its persistent volume. In contrast,
+`railway run` executes locally and must not be used to establish the hosted
+session. After connection, the operator can run `railway ssh -- node
+scripts/psn/cli.js refresh`, then set `ENABLE_PSN=true` and redeploy. Public docs
+work before activation; authenticated data routes return 503 while disabled.
+
+The old prototype's observed counts are historical context, not an assertion
+about the current live results.
 
 ## Tests and references
 
