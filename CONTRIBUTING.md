@@ -66,7 +66,8 @@ If you find a security issue, please avoid opening a public issue with exploit d
 
 PSN setup, storage, API contracts, and offline test commands are documented in
 [`docs/psn.md`](docs/psn.md). Steam has a separate provider guide in
-[`docs/steam.md`](docs/steam.md); keep provider storage and refresh jobs isolated.
+[`docs/steam.md`](docs/steam.md), and Epic operations are documented in
+[`docs/epic.md`](docs/epic.md). Keep provider storage and refresh jobs isolated.
 Public provider routes must stay snapshot-only. Run provider-specific tests
 during provider work and a combined regression when shared routing or startup
 changes. Never use live Valorant refresh commands as ordinary tests.

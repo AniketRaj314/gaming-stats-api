@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.2.0 — 2026-09-17 (implementation)
+
+- Add an opt-in Epic provider at `/epic` with cached claimed PC base games,
+  catalog artwork, Epic-reported playtime, and automatic discovery on refresh.
+- Add encrypted rotating-session storage, account-bound renewal, complete library
+  pagination, catalog classification/cache, persistent scheduling, backoff, and
+  remote session revocation through private operator commands.
+- Preserve explicit zero, missing, ambiguous, and unavailable playtime states;
+  exclude add-ons, private sandboxes, engine assets, records without app
+  artifacts, and unknown classifications with coverage counts.
+- Add public human and machine-readable Epic documentation plus a full security,
+  setup, recovery, storage, and disconnect guide.
+- Keep Epic disabled until the owner connection and live production verification
+  complete. Epic-specific tests use fixtures and make no live provider calls.
+- Update vulnerable Express transitive dependencies; the production dependency
+  audit reports no known vulnerabilities.
+- Verification: all 263 offline tests passed under Node 24 with Epic, Steam, PSN,
+  Valorant, upstream HTTP, credential storage, and CLI interactions mocked.
+
 ## 3.1.0 — 2026-09-16
 
 - Add an opt-in Steam provider at `/steam` with cached profile, owned library,
