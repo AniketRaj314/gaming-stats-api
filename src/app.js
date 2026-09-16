@@ -4,9 +4,10 @@ const { version } = require('../package.json');
 const { requireApiKey } = require('./shared/auth');
 const { createValorantRouter } = require('./providers/valorant');
 const { createPsnRouter } = require('./providers/psn/routes');
+const { createSteamRouter } = require('./providers/steam/routes');
 const { createGamingDocsRouter } = require('./routes/gamingDocs');
 
-function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled' } = {}) {
+function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled', steamService = null, steamStatus = 'disabled' } = {}) {
   const app = express();
   const auth = requireApiKey(validKeys);
 
@@ -24,6 +25,7 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   app.use('/custom/valorant', valorant);
   app.use('/valorant', valorant);
   app.use('/psn', auth, createPsnRouter({ service: psnService, unavailableStatus: psnStatus }));
+  app.use('/steam', auth, createSteamRouter({ service: steamService, unavailableStatus: steamStatus }));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

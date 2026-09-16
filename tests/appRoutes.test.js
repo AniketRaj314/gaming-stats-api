@@ -163,10 +163,21 @@ describe('shared application and migration compatibility', () => {
     expect(readSnapshot).not.toHaveBeenCalled();
   });
 
-  test.each(['/steam', '/epic'])('unimplemented route %s returns 404', async (url) => {
+  test.each(['/epic'])('unimplemented route %s returns 404', async (url) => {
     const res = await request(createApp()).get(url);
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not found' });
+  });
+
+  test('Steam being unavailable leaves Valorant reads operational', async () => {
+    readSnapshot.mockReturnValue(SNAPSHOT);
+    const app = createApp({ validKeys: [VALID_API_KEY], steamStatus: 'unavailable' });
+    const steam = await request(app).get('/steam/library').set('X-API-Key', VALID_API_KEY);
+    expect(steam.status).toBe(503);
+    expect(steam.body.status).toBe('unavailable');
+    const valorant = await request(app).post(`/custom/valorant/stats/${ENCODED_USERNAME}`)
+      .set('X-API-Key', VALID_API_KEY).send({ modules: { agents: {} } });
+    expect(valorant.status).toBe(200);
   });
 
   test('PSN being unavailable leaves Valorant reads operational', async () => {
