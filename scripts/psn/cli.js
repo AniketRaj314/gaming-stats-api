@@ -25,6 +25,9 @@ async function main() {
   try {
     if (command === 'connect') {
       if (store.state().sealed) throw new ProviderError('disconnect-before-reconnecting', 'connection');
+      if (process.env.RAILWAY_ENVIRONMENT_ID && process.env.PSN_SECURE_TTY !== '1') {
+        throw new ProviderError('use-npm-run-psn-connect-production', 'setup');
+      }
       console.log(`Connecting only the configured PSN account: ${provider.settings.onlineId}`);
       console.log('Sign in yourself at https://www.playstation.com/, then visit https://ca.account.sony.com/api/v1/ssocookie in the same browser.');
       let raw;

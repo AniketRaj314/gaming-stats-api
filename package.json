@@ -22,6 +22,7 @@
     "test:coverage": "jest --coverage",
     "psn:init-key": "node scripts/psn/cli.js init-key",
     "psn:connect": "node scripts/psn/cli.js connect",
+    "psn:connect:production": "PSN_SECURE_TTY=1 node scripts/psn/cli.js connect",
     "psn:refresh": "node scripts/psn/cli.js refresh",
     "psn:status": "node scripts/psn/cli.js status",
     "psn:disconnect": "node scripts/psn/cli.js disconnect",

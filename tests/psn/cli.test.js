@@ -34,3 +34,15 @@ test('world-readable input is rejected before authentication', async () => {
   await expect(main()).rejects.toThrow('input-file-must-be-small-and-private');
   expect(connect).not.toHaveBeenCalled();expect(fs.existsSync(input)).toBe(true);
 });
+test('direct interactive connection is refused on Railway', async () => {
+  const previous = process.env.RAILWAY_ENVIRONMENT_ID;
+  process.env.RAILWAY_ENVIRONMENT_ID = 'production';
+  process.argv = ['node', 'cli.js', 'connect'];
+  try {
+    await expect(main()).rejects.toThrow('use-npm-run-psn-connect-production');
+    expect(connect).not.toHaveBeenCalled();
+  } finally {
+    if (previous === undefined) delete process.env.RAILWAY_ENVIRONMENT_ID;
+    else process.env.RAILWAY_ENVIRONMENT_ID = previous;
+  }
+});

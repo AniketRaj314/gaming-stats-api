@@ -57,6 +57,24 @@ The input must be a regular, non-symlink file with no group/other permissions an
 at most 1 KiB. It is removed only after a verified session is durably saved;
 failure leaves it available for retry. Keep it outside source and upload paths.
 
+For the linked Railway production service, open Railway's interactive shell and
+then run the protected production command inside it:
+
+```sh
+railway ssh
+```
+
+```sh
+npm run psn:connect:production
+```
+
+The second command is entered after the remote `root@...:/app#` prompt appears.
+Railway's command-mode SSH can echo input locally and fail to forward it, so do
+not use `railway ssh -- node scripts/psn/cli.js connect`. The full interactive
+shell correctly hides and forwards the NPSSO. The production CLI refuses a
+connection that is not marked as using this protected path. Run `exit` after
+the connection succeeds.
+
 After connecting:
 
 ```sh

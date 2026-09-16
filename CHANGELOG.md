@@ -21,6 +21,9 @@
   Valorant reads were verified. PSN activation requires a destination owner
   connection; real token renewal, restart recovery, and an idle-to-playing
   transition remain to be observed.
+- Require Railway owner connections to use its full interactive shell. Railway's
+  command-mode SSH can echo credential input locally without forwarding it; the
+  documented production path now guards against that unsafe invocation.
 
 ## 2.3.0 — 2026-09-16 (local implementation)
 
