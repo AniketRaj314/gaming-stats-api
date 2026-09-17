@@ -1,6 +1,6 @@
 # Steam provider
 
-Steam is live in the deployed version 3.1.0. It remains opt-in for other
+Steam was introduced in version 3.1.0 and is live in production. It remains opt-in for other
 installations, with `ENABLE_STEAM=false` as the safe default. It uses Valve's
 Steam Web API, a server-side user API key, an exact SteamID64, and sanitized JSON
 snapshots. It does not require a database, Steam password, session cookie, OAuth
@@ -173,6 +173,9 @@ return 200 while details are `pending`, `not-supported`, `private`, or
 - `include_played_free_games=true` includes played free titles, but upstream
   privacy and Steam's ownership semantics still define coverage.
 - Recent activity uses Steam's two-week window and can be empty legitimately.
+- Every game record keeps Steam's small `iconUrl` and a separate `coverUrl` for
+  the full 600×900 library capsule. Published Steam apps are required to provide
+  that capsule; unpublished or removed apps may not serve the derived URL.
 - `hasCommunityVisibleStats` controls background detail enrichment. Many games
   expose no achievements or stats through the Web API.
 - Locked hidden achievements conceal their name, description, and icon.

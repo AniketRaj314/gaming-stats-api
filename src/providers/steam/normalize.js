@@ -36,6 +36,10 @@ function iconUrl(id, hash) {
     : null;
 }
 
+function coverUrl(id) {
+  return `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/library_600x900_2x.jpg`;
+}
+
 function game(raw) {
   if (!object(raw)) throw new ProviderError('invalid-game-record', 'schema');
   const id = appId(raw.appid);
@@ -52,6 +56,7 @@ function game(raw) {
     lastPlayedAt: timestamp(raw.rtime_last_played),
     hasCommunityVisibleStats: raw.has_community_visible_stats === true,
     iconUrl: iconUrl(id, raw.img_icon_url),
+    coverUrl: coverUrl(id),
   };
 }
 

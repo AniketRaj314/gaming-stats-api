@@ -56,7 +56,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; encrypted SQLite sessions and cached snapshots for PSN and Epic
 - PSN played history, trophy summary, current presence, and per-game trophy details
-- Steam profile, owned library, recent playtime, achievements, rarity, and exposed game stats
+- Steam profile, owned library with icons and full cover art, recent playtime, achievements, rarity, and exposed game stats
 - Epic claimed base-game library, artwork, playtime, and automatic discovery of new claims
 
 ## Requirements

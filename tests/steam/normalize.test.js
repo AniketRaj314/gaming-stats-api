@@ -4,7 +4,11 @@ const f = require('./fixtures');
 test('normalizes owned games and exact aggregate playtime without cross-store merging', () => {
   const result = n.library(f.library);
   expect(result.games.map(game => game.appId)).toEqual([570, 730]);
-  expect(result.games[0]).toMatchObject({ providerGameId: '570', playtimeMinutes: 600, playtimeTwoWeeksMinutes: 30 });
+  expect(result.games[0]).toMatchObject({
+    providerGameId: '570', playtimeMinutes: 600, playtimeTwoWeeksMinutes: 30,
+    iconUrl: `https://media.steampowered.com/steamcommunity/public/images/apps/570/${'a'.repeat(40)}.jpg`,
+    coverUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/library_600x900_2x.jpg',
+  });
   expect(result.totals).toMatchObject({ gameCount: 2, playedGameCount: 2, totalPlaytimeMinutes: 720, gamesWithCommunityStats: 1 });
   expect(result.coverage).toMatchObject({ kind: 'owned-games', includePlayedFreeGames: true, privacyDependent: true });
 });

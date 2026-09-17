@@ -34,7 +34,9 @@ const steamGame = {
   providerGameId: '570', appId: 570, name: 'Example Game', playtimeMinutes: 600,
   playtimeTwoWeeksMinutes: 30, playtimeWindowsMinutes: 500, playtimeMacMinutes: 0,
   playtimeLinuxMinutes: 100, playtimeDisconnectedMinutes: null,
-  lastPlayedAt: '2026-09-15T12:00:00.000Z', hasCommunityVisibleStats: true, iconUrl: null,
+  lastPlayedAt: '2026-09-15T12:00:00.000Z', hasCommunityVisibleStats: true,
+  iconUrl: 'https://media.steampowered.com/steamcommunity/public/images/apps/570/example.jpg',
+  coverUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/library_600x900_2x.jpg',
 };
 const epicEnvelope = {
   schemaVersion: 1, provider: 'epic', accountRef: 'owner', status: 'ready', stale: false,
@@ -79,7 +81,7 @@ function steamSections() {
       createdAt: null, countryCode: null, steamLevel: 42,
       currentGame: { providerGameId: '570', appId: 570, name: 'Example Game' },
     }, null, 2) },
-    { title: 'Library response', text: 'This is Steam\'s API-visible owned-game list with played free games included. Privacy settings can hide the list. Minutes remain integer source values; missing platform splits and disconnected playtime are null. Totals sum Steam app records and are not merged with Playnite, Epic, PSN, or duplicate editions on other stores.', language: 'json', code: JSON.stringify({ ...steamEnvelope,
+    { title: 'Library response', text: 'This is Steam\'s API-visible owned-game list with played free games included. Privacy settings can hide the list. Each game exposes iconUrl for compact UI and coverUrl for Steam\'s full 600×900 library capsule. The cover URL is deterministic for published Steam apps; unpublished or removed apps may not serve an image. Minutes remain integer source values; missing platform splits and disconnected playtime are null. Totals sum Steam app records and are not merged with Playnite, Epic, PSN, or duplicate editions on other stores.', language: 'json', code: JSON.stringify({ ...steamEnvelope,
       coverage: { kind: 'owned-games', complete: true, includePlayedFreeGames: true, privacyDependent: true },
       totals: { gameCount: 1, playedGameCount: 1, totalPlaytimeMinutes: 600, windowsPlaytimeMinutes: 500, macPlaytimeMinutes: 0, linuxPlaytimeMinutes: 100, disconnectedPlaytimeMinutes: 0, gamesWithCommunityStats: 1 },
       games: [steamGame],
