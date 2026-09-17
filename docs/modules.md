@@ -125,7 +125,7 @@ Each entry defines:
 
 - `page`: tracker.gg route segment like `overview`, `agents`, `maps`, or `performance`
 - `playlist`: optional fixed playlist override
-- `waitFor`: Playwright selector used before extraction
+- `waitFor`: broad Playwright selector used before semantic readiness checks
 - `waitForState`: optional selector state, defaults to `visible`
 - `readyCheck`: optional `page.waitForFunction()` predicate
 - `extract`: browser-side DOM extraction logic
@@ -134,9 +134,15 @@ Current readiness rules:
 
 | Module | waitFor | Notes |
 | --- | --- | --- |
-| `agents` | `.st-content__item` | uses `attached` plus a `readyCheck` for non-empty agent names |
-| `maps` | `.st-content__item` | waits for map rows before extraction |
-| `totalPlaytime` | `.playtime-summary .value` | single-value summary extraction |
+| `agents` | `body` | waits for the agent heading, roles, and playtime values, then reads each rendered row by its content |
+| `maps` | `body` | waits for the map table labels, then reads map rows and their ordered statistics by content |
+| `totalPlaytime` | `body` | finds the value associated with the rendered `Total Playtime` label |
+
+Tracker's generated CSS classes are intentionally not part of these rules. A
+completed Actor run with no dataset item, a missing requested module, or an
+unexpectedly empty table is treated as a failed refresh. The previous snapshot
+remains available with stale status and the failure reason instead of receiving
+a misleading new refresh timestamp.
 
 ## API resolution rules
 

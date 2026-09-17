@@ -52,38 +52,66 @@ const MODULE_DEFINITIONS = {
   agents: {
     page: 'agents',
     // no playlist → dynamic (caller-supplied)
-    waitFor: '.st-content__item',
-    waitForState: 'attached',
+    waitFor: 'body',
     readyCheck: `
       () => {
-        const names = document.querySelectorAll(
-          '.st-content__item .st__item--sticky.st__item--wide.agent-row .info .value'
-        );
-        return Array.from(names).some((node) => node.textContent?.trim());
+        const text = document.body?.innerText ?? '';
+        return /\\bAGENTS\\b/i.test(text) &&
+          /\\b(?:Controller|Duelist|Initiator|Sentinel)\\b/i.test(text) &&
+          /\\b\\d+(?:\\.\\d+)?\\s*(?:hrs?|hours?|mins?|minutes?)\\b/i.test(text);
       }
     `,
     extract: `
-      const rows = document.querySelectorAll('.st-content__item');
+      const cleanLines = (value) => String(value ?? '')
+        .split(/\\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const timePattern = /^\\d+(?:\\.\\d+)?\\s*(?:hrs?|hours?|mins?|minutes?)$/i;
+      const rolePattern = /\\b(Controller|Duelist|Initiator|Sentinel)\\b/i;
+      const percentPattern = /^-?\\d+(?:\\.\\d+)?%$/;
+      const candidates = Array.from(document.querySelectorAll('img[alt]'));
       const results = [];
-      rows.forEach(row => {
-        const nameEl   = row.querySelector('.st__item--sticky.st__item--wide.agent-row .info .value');
-        if (!nameEl) return;
-        const roleEl   = row.querySelector('.st__item--sticky.st__item--wide.agent-row .info .label');
-        const statEls  = row.querySelectorAll(
-          '.st-content__item-value:not(.st__item--sticky):not(.st__item--expand) .info .value'
-        );
+      const seen = new Set();
+
+      candidates.forEach((image) => {
+        const name = image.getAttribute('alt')?.trim();
+        if (!name || seen.has(name)) return;
+
+        let row = image.parentElement;
+        let lines = [];
+        let timeIndex = -1;
+        for (let depth = 0; row && row !== document.body && depth < 12; depth += 1) {
+          lines = cleanLines(row.innerText);
+          timeIndex = lines.findIndex((line) => timePattern.test(line));
+          const primaryStats = timeIndex >= 0 ? lines.slice(timeIndex, timeIndex + 9) : [];
+          if (
+            rolePattern.test(lines.slice(0, Math.max(timeIndex, 0)).join(' ')) &&
+            primaryStats.length === 9 &&
+            percentPattern.test(primaryStats[2]) &&
+            percentPattern.test(primaryStats[7]) &&
+            percentPattern.test(primaryStats[8])
+          ) break;
+          row = row.parentElement;
+          timeIndex = -1;
+        }
+
+        if (!row || timeIndex < 0) return;
+        const role = lines.slice(0, timeIndex).join(' ').match(rolePattern)?.[1];
+        if (!role) return;
+        const statValues = lines.slice(timeIndex, timeIndex + 9);
+        seen.add(name);
         results.push({
-          agent:      nameEl?.innerText?.trim(),
-          role:       roleEl?.innerText?.trim(),
-          timePlayed: statEls[0]?.innerText?.trim(),
-          matches:    statEls[1]?.innerText?.trim(),
-          winRate:    statEls[2]?.innerText?.trim(),
-          kd:         statEls[3]?.innerText?.trim(),
-          adr:        statEls[4]?.innerText?.trim(),
-          acs:        statEls[5]?.innerText?.trim(),
-          ddDelta:    statEls[6]?.innerText?.trim(),
-          hsPercent:  statEls[7]?.innerText?.trim(),
-          kast:       statEls[8]?.innerText?.trim(),
+          agent: name,
+          role,
+          timePlayed: statValues[0],
+          matches: statValues[1],
+          winRate: statValues[2],
+          kd: statValues[3],
+          adr: statValues[4],
+          acs: statValues[5],
+          ddDelta: statValues[6],
+          hsPercent: statValues[7],
+          kast: statValues[8],
         });
       });
       return results;
@@ -92,42 +120,101 @@ const MODULE_DEFINITIONS = {
   totalPlaytime: {
     page: 'performance',
     // no playlist → dynamic (caller-supplied, doesn't matter — shows everywhere)
-    waitFor: '.playtime-summary .value',
+    waitFor: 'body',
+    readyCheck: `
+      () => /Total\\s*Playtime[\\s\\S]{0,100}?[\\d,.]+\\s*(?:hrs?|hours?|mins?|minutes?)/i
+        .test(document.body?.innerText ?? '')
+    `,
     extract: `
+      const match = (document.body?.innerText ?? '').match(
+        /Total\\s*Playtime[\\s\\S]{0,100}?([\\d,.]+\\s*(?:hrs?|hours?|mins?|minutes?))/i
+      );
       return {
-        total: document.querySelector('.playtime-summary .value')?.innerText?.trim()
+        total: match?.[1]?.trim() ?? null
       };
     `,
   },
   maps: {
     page: 'maps',
     // no playlist → dynamic (caller-supplied)
-    waitFor: '.st-content__item',
+    waitFor: 'body',
+    readyCheck: `
+      () => {
+        const text = document.body?.innerText ?? '';
+        return /\\bMAPS\\b/i.test(text) && /\\bWin\\s*%/i.test(text) &&
+          /\\b(?:Wins|Losses|K\\/D|ADR|ACS)\\b/i.test(text);
+      }
+    `,
     extract: `
-      const rows = document.querySelectorAll('.st-content__item');
+      const mapNames = __MAP_NAMES__;
+      const agentNames = __AGENT_NAMES__;
+      const cleanLines = (value) => String(value ?? '')
+        .split(/\\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const percentPattern = /^-?\\d+(?:\\.\\d+)?%$/;
+      const integerPattern = /^\\d[\\d,]*$/;
+      const numberPattern = /^-?\\d[\\d,]*(?:\\.\\d+)?$/;
+      const findStatsIndex = (lines) => {
+        for (let index = 0; index <= lines.length - 6; index += 1) {
+          if (
+            percentPattern.test(lines[index]) &&
+            integerPattern.test(lines[index + 1]) &&
+            integerPattern.test(lines[index + 2]) &&
+            numberPattern.test(lines[index + 3]) &&
+            numberPattern.test(lines[index + 4]) &&
+            numberPattern.test(lines[index + 5])
+          ) return index;
+        }
+        return -1;
+      };
       const results = [];
-      rows.forEach(row => {
-        const nameEl = row.querySelector('.st__item--sticky.st__item--wide .info .value');
-        if (!nameEl) return;
-        const agentEls = row.querySelectorAll('.rounded-md.flex-col.overflow-hidden');
+      const seen = new Set();
+
+      mapNames.forEach((mapName) => {
+        const image = Array.from(document.querySelectorAll('img[alt]'))
+          .find((candidate) => candidate.getAttribute('alt')?.trim() === mapName);
+        const textAnchor = image ?? Array.from(document.querySelectorAll('main *'))
+          .find((candidate) => candidate.children.length === 0 && candidate.textContent?.trim() === mapName);
+        if (!textAnchor) return;
+
+        let row = textAnchor.parentElement;
+        let lines = [];
+        let statsIndex = -1;
+        for (let depth = 0; row && row !== document.body && depth < 12; depth += 1) {
+          lines = cleanLines(row.innerText);
+          statsIndex = findStatsIndex(lines);
+          if (statsIndex >= 0) break;
+          row = row.parentElement;
+        }
+        if (!row || statsIndex < 0 || seen.has(mapName)) return;
+
         const topAgents = [];
-        agentEls.forEach(el => {
-          const name = el.querySelector('img')?.alt?.trim();
-          const winRate = el.querySelector('.text-10')?.innerText?.trim();
-          if (name) topAgents.push({ agent: name, winRate: winRate ?? null });
+        const topAgentSeen = new Set();
+        Array.from(row.querySelectorAll('img[alt]')).forEach((agentImage) => {
+          const name = agentImage.getAttribute('alt')?.trim();
+          if (!agentNames.includes(name) || topAgentSeen.has(name)) return;
+          let holder = agentImage.parentElement;
+          let winRate = null;
+          for (let depth = 0; holder && holder !== row && depth < 5; depth += 1) {
+            winRate = cleanLines(holder.innerText).find((line) => percentPattern.test(line)) ?? null;
+            if (winRate) break;
+            holder = holder.parentElement;
+          }
+          topAgentSeen.add(name);
+          topAgents.push({ agent: name, winRate });
         });
-        const statEls = row.querySelectorAll(
-          '.st-content__item-value:not(.st__item--sticky):not(.st__item--expand) .info .value'
-        );
+        const statValues = lines.slice(statsIndex, statsIndex + 6);
+        seen.add(mapName);
         results.push({
-          map:     nameEl?.innerText?.trim(),
+          map: mapName,
           topAgents,
-          winRate: statEls[0]?.innerText?.trim(),
-          wins:    statEls[1]?.innerText?.trim(),
-          losses:  statEls[2]?.innerText?.trim(),
-          kd:      statEls[3]?.innerText?.trim(),
-          adr:     statEls[4]?.innerText?.trim(),
-          acs:     statEls[5]?.innerText?.trim(),
+          winRate: statValues[0],
+          wins: statValues[1],
+          losses: statValues[2],
+          kd: statValues[3],
+          adr: statValues[4],
+          acs: statValues[5],
         });
       });
       return results;
@@ -144,6 +231,9 @@ function buildPageFunction(requestedModules) {
   const blocks = requestedModules
     .map((mod) => {
       const { waitFor, waitForState, readyCheck, extract } = MODULE_DEFINITIONS[mod];
+      const resolvedExtract = extract
+        .replace('__MAP_NAMES__', JSON.stringify(Object.keys(MAP_DATA)))
+        .replace('__AGENT_NAMES__', JSON.stringify(Object.keys(AGENT_DATA)));
       return `
   log.info('Waiting for ${mod}...');
   await page.waitForSelector(${JSON.stringify(waitFor)}, {
@@ -156,7 +246,7 @@ function buildPageFunction(requestedModules) {
       : ''
   }
   result[${JSON.stringify(mod)}] = await page.evaluate(() => {
-    ${extract}
+    ${resolvedExtract}
   });
   log.info('${mod} done: ' + result[${JSON.stringify(mod)}]?.length + ' items');`;
     })
@@ -172,7 +262,7 @@ ${blocks}
 
 /**
  * Fire a single Apify call for one resolved playlist URL and the given modules.
- * Returns the cleaned result object (Apify metadata fields stripped), or null on 404.
+ * Returns the cleaned result object (Apify metadata fields stripped).
  */
 async function scrapeUrl(username, page, playlist, modules) {
   const token = process.env.APIFY_TOKEN;
@@ -245,15 +335,30 @@ async function scrapeUrl(username, page, playlist, modules) {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
   if (!Array.isArray(items) || items.length === 0) {
-    log('APIFY', `No data returned for ${username} (${page}/${playlist}) after ${elapsed}s`);
-    return null; // signals 404
+    throw new Error(
+      `Apify completed without a dataset item for ${username} (${page}/${playlist}) after ${elapsed}s`
+    );
   }
 
   log('APIFY', `Done for ${username} (${page}/${playlist}) in ${elapsed}s`);
 
   // Strip Apify metadata fields (#error, #debug, etc.) from the result
   const item = items[0];
-  return Object.fromEntries(Object.entries(item).filter(([key]) => !key.startsWith('#')));
+  const cleaned = Object.fromEntries(Object.entries(item).filter(([key]) => !key.startsWith('#')));
+  for (const moduleName of modules) {
+    const value = cleaned[moduleName];
+    const valid = moduleName === 'totalPlaytime'
+      ? Boolean(value?.total)
+      : moduleName === 'agents' || moduleName === 'maps'
+        ? Array.isArray(value) && value.length > 0
+        : value !== undefined && value !== null;
+    if (!valid) {
+      throw new Error(
+        `Apify returned an incomplete ${moduleName} result for ${username} (${page}/${playlist})`
+      );
+    }
+  }
+  return cleaned;
 }
 
 /**

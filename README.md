@@ -2,9 +2,9 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.5.0** preserves the substantial artwork sets supplied by PSN, Epic,
-and Valorant while retaining the existing compatibility image fields. Steam's
-artwork surface was already complete for the observed owner responses. See the
+Version **3.5.1** repairs Valorant Tracker extraction after a Tracker layout
+change and prevents failed Apify runs from being recorded as successful
+refreshes. It also includes the expanded artwork coverage released in 3.5.0. See the
 [release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
 the [PSN guide](docs/psn.md), and the [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases

@@ -1,5 +1,7 @@
 'use strict';
 
+const vm = require('node:vm');
+
 jest.mock('../src/agentData');
 jest.mock('../src/rankIcons');
 jest.mock('../src/mapData');
@@ -78,7 +80,7 @@ describe('module grouping', () => {
       .mockResolvedValueOnce(makeOkResponse([{
         rank: { current: { rank: 'Gold 2', icon: null }, peak: { rank: 'Plat 1', icon: null } },
       }]))
-      .mockResolvedValueOnce(makeOkResponse([{ agents: [] }]));
+      .mockResolvedValueOnce(makeOkResponse([{ agents: [{ agent: 'Jett' }] }]));
     await scrapeStats('User#1', 'competitive', ['rank', 'agents']);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
@@ -99,43 +101,141 @@ describe('module grouping', () => {
 
 describe('Apify run configuration', () => {
   test('defaults actor memory to 2048 MB', async () => {
-    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [] }]));
+    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [{ agent: 'Jett' }] }]));
     await scrapeStats('User#1', 'competitive', ['agents']);
     expect(fetchSpy.mock.calls[0][0]).toContain('memory=2048');
   });
 
   test('uses APIFY_MEMORY_MB when provided', async () => {
     process.env.APIFY_MEMORY_MB = '4096';
-    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [] }]));
+    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [{ agent: 'Jett' }] }]));
     await scrapeStats('User#1', 'competitive', ['agents']);
     expect(fetchSpy.mock.calls[0][0]).toContain('memory=4096');
   });
 
   test('falls back to 2048 MB when APIFY_MEMORY_MB is invalid', async () => {
     process.env.APIFY_MEMORY_MB = 'nope';
-    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [] }]));
+    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [{ agent: 'Jett' }] }]));
     await scrapeStats('User#1', 'competitive', ['agents']);
     expect(fetchSpy.mock.calls[0][0]).toContain('memory=2048');
   });
-});
 
-// ─── null / 404 handling ─────────────────────────────────────────────────────
+  test('total playtime uses semantic content and extracts the current rendered value', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([{ totalPlaytime: { total: '2,103 hrs' } }]));
+    await scrapeStats('User#1', 'competitive', ['totalPlaytime']);
+    const { pageFunction } = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(pageFunction).not.toContain('.playtime-summary');
 
-describe('null / 404 handling', () => {
-  test('returns null when all Apify calls return []', async () => {
-    fetchSpy.mockResolvedValue(makeOkResponse([]));
-    const result = await scrapeStats('User#1', 'competitive', ['rank']);
-    expect(result).toBeNull();
+    const document = { body: { innerText: 'Performance\nTotal Playtime\n2,103 hrs\nAll Modes' } };
+    const fn = vm.runInNewContext(`(${pageFunction})`, { document });
+    const page = {
+      waitForSelector: jest.fn().mockResolvedValue(undefined),
+      waitForFunction: jest.fn(async (predicate) => {
+        expect(predicate()).toBe(true);
+      }),
+      evaluate: jest.fn(async (extractor) => extractor()),
+    };
+    const result = await fn({ page, request: {}, log: { info: jest.fn() } });
+
+    expect(page.waitForSelector).toHaveBeenCalledWith('body', expect.any(Object));
+    expect(result.totalPlaytime).toEqual({ total: '2,103 hrs' });
   });
 
-  test('returns data when one call returns [] and another has data', async () => {
-    // rank (overview/competitive) and agents (agents/competitive) go to different pages
-    fetchSpy
-      .mockResolvedValueOnce(makeOkResponse([]))                                   // rank: no data
-      .mockResolvedValueOnce(makeOkResponse([{ agents: [{ agent: 'Jett' }] }]));  // agents: data
-    const result = await scrapeStats('User#1', 'competitive', ['rank', 'agents']);
-    expect(result).not.toBeNull();
-    expect(result).toHaveProperty('agents');
+  test('map extraction receives the current static map and agent names at call time', async () => {
+    MAP_DATA.Ascent = {};
+    AGENT_DATA.Jett = {};
+    fetchSpy.mockResolvedValue(makeOkResponse([{
+      maps: [{ map: 'Ascent', topAgents: [{ agent: 'Jett', winRate: '50%' }] }],
+    }]));
+    await scrapeStats('User#1', 'competitive', ['maps']);
+    const { pageFunction } = JSON.parse(fetchSpy.mock.calls[0][1].body);
+
+    expect(pageFunction).toContain('const mapNames = ["Ascent"]');
+    expect(pageFunction).toContain('const agentNames = ["Jett"]');
+    expect(pageFunction).not.toContain('.st-content__item');
+
+    const body = { innerText: 'MAPS\nWin %\nWins\nLosses\nK/D\nADR\nACS' };
+    const mapRow = {
+      innerText: 'Ascent\nJett\n60.0%\n52.0%\n13\n12\n1.10\n145.2\n220.4',
+      parentElement: body,
+    };
+    const agentHolder = { innerText: 'Jett\n60.0%', parentElement: mapRow };
+    const mapImage = { getAttribute: () => 'Ascent', parentElement: mapRow };
+    const agentImage = { getAttribute: () => 'Jett', parentElement: agentHolder };
+    mapRow.querySelectorAll = () => [mapImage, agentImage];
+    const document = {
+      body,
+      querySelectorAll: (selector) => selector === 'img[alt]' ? [mapImage, agentImage] : [],
+    };
+    const fn = vm.runInNewContext(`(${pageFunction})`, { document });
+    const page = {
+      waitForSelector: jest.fn().mockResolvedValue(undefined),
+      waitForFunction: jest.fn(async (predicate) => expect(predicate()).toBe(true)),
+      evaluate: jest.fn(async (extractor) => extractor()),
+    };
+    const result = await fn({ page, request: {}, log: { info: jest.fn() } });
+
+    expect(result.maps).toEqual([{
+      map: 'Ascent', topAgents: [{ agent: 'Jett', winRate: '60.0%' }],
+      winRate: '52.0%', wins: '13', losses: '12', kd: '1.10', adr: '145.2', acs: '220.4',
+    }]);
+  });
+
+  test('agent extraction reads rendered row values without generated CSS classes', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([{
+      agents: [{ agent: 'Omen', role: 'Controller' }],
+    }]));
+    await scrapeStats('User#1', 'competitive', ['agents']);
+    const { pageFunction } = JSON.parse(fetchSpy.mock.calls[0][1].body);
+
+    const body = { innerText: 'AGENTS\nOmen Controller\n60 hrs\n102\n52.0%\n1.05\n143.6\n222.2\n+8\n18.0%\n71.6%' };
+    const row = {
+      innerText: 'Omen Controller\n60 hrs\n102\n52.0%\n1.05\n143.6\n222.2\n+8\n18.0%\n71.6%',
+      parentElement: body,
+    };
+    const image = { getAttribute: () => 'Omen', parentElement: row };
+    const document = { body, querySelectorAll: () => [image] };
+    const fn = vm.runInNewContext(`(${pageFunction})`, { document });
+    const page = {
+      waitForSelector: jest.fn().mockResolvedValue(undefined),
+      waitForFunction: jest.fn(async (predicate) => expect(predicate()).toBe(true)),
+      evaluate: jest.fn(async (extractor) => extractor()),
+    };
+    const result = await fn({ page, request: {}, log: { info: jest.fn() } });
+
+    expect(result.agents).toEqual([{
+      agent: 'Omen', role: 'Controller', timePlayed: '60 hrs', matches: '102',
+      winRate: '52.0%', kd: '1.05', adr: '143.6', acs: '222.2', ddDelta: '+8',
+      hsPercent: '18.0%', kast: '71.6%',
+    }]);
+  });
+});
+
+// ─── failed and incomplete Actor output ──────────────────────────────────────
+
+describe('failed and incomplete Actor output', () => {
+  test('throws when Apify finishes without a dataset item', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([]));
+    await expect(scrapeStats('User#1', 'competitive', ['rank']))
+      .rejects.toThrow('Apify completed without a dataset item');
+  });
+
+  test('throws when an expected module is missing', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([{}]));
+    await expect(scrapeStats('User#1', 'competitive', ['agents']))
+      .rejects.toThrow('Apify returned an incomplete agents result');
+  });
+
+  test('throws when a table module is unexpectedly empty', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([{ maps: [] }]));
+    await expect(scrapeStats('User#1', 'competitive', ['maps']))
+      .rejects.toThrow('Apify returned an incomplete maps result');
+  });
+
+  test('throws when total playtime extraction has no value', async () => {
+    fetchSpy.mockResolvedValue(makeOkResponse([{ totalPlaytime: { total: null } }]));
+    await expect(scrapeStats('User#1', 'competitive', ['totalPlaytime']))
+      .rejects.toThrow('Apify returned an incomplete totalPlaytime result');
   });
 
   test('throws with "Apify request failed" on network rejection', async () => {
