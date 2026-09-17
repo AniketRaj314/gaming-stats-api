@@ -52,7 +52,7 @@ test('connects only the expected owner and publishes a complete library snapshot
 
 test('rejects an unexpected Epic display name before persisting the connection', async () => {
   client.connect.mockResolvedValue({ ...(await client.connect()), displayName: 'DifferentOwner' });
-  await expect(service.connect('code')).rejects.toThrow('account-mismatch');
+  await expect(service.connect('code')).rejects.toThrow('unexpected-display-name');
   expect(store.state().status).toBe('not-configured');
 });
 

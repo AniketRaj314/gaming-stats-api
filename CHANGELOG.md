@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.1 — 2026-09-17
+
+- Preserve the display name from Epic's token response when the subsequent
+  account verification response contains only the verified account ID.
+- Distinguish a verified but unexpected display name from an account-ID mismatch
+  during the private owner connection flow.
+
 ## 3.2.0 — 2026-09-17 (implementation)
 
 - Add an opt-in Epic provider at `/epic` with cached claimed PC base games,

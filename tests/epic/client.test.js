@@ -47,6 +47,12 @@ test('rejects repeated pagination cursors and foreign renewal accounts', async (
   await expect(client.renew({ refreshToken: 'refresh', accountId: f.accountId }, client.context())).rejects.toThrow('account-mismatch');
 });
 
+test('preserves the token display name when Epic verification returns only the account ID', async () => {
+  fetchImpl.mockResolvedValueOnce(json({ account_id: f.accountId }));
+  const saved = { accountId: f.accountId, accessToken: 'token', displayName: 'Spider31415' };
+  await expect(client.verify(saved, client.context(), f.accountId)).resolves.toEqual(saved);
+});
+
 test('fetches playtime and batches catalog IDs without putting bearer tokens in URLs', async () => {
   fetchImpl.mockResolvedValueOnce(json(f.playtime)).mockResolvedValueOnce(json({
     'game-one': f.rawCatalog.get('alpha\0game-one'), 'addon-one': f.rawCatalog.get('alpha\0addon-one'),
