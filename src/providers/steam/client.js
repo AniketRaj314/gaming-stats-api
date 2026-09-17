@@ -62,11 +62,19 @@ function createClient({ apiKey, fetchImpl = global.fetch, now = Date.now, reques
       throw new ProviderError('invalid-asset-request', 'assets');
     }
     const storeItems = [];
-    for (let offset = 0; offset < appIds.length; offset += 100) {
+    for (let offset = 0; offset < appIds.length; offset += 50) {
       const input = {
-        ids: appIds.slice(offset, offset + 100).map(appid => ({ appid })),
+        ids: appIds.slice(offset, offset + 50).map(appid => ({ appid })),
         context: { language, country_code: 'US', steam_realm: 1 },
-        data_request: { include_assets: true },
+        data_request: {
+          include_assets: true,
+          include_release: true,
+          include_platforms: true,
+          include_reviews: true,
+          include_basic_info: true,
+          include_categories: true,
+          include_tag_count: 20,
+        },
       };
       const raw = await request('/IStoreBrowseService/GetItems/v1/', { input_json: JSON.stringify(input) }, ctx, 'assets');
       if (!Array.isArray(raw?.response?.store_items)) throw new ProviderError('invalid-assets-response', 'assets');
@@ -80,14 +88,28 @@ function createClient({ apiKey, fetchImpl = global.fetch, now = Date.now, reques
     profile: (steamId, ctx) => request('/ISteamUser/GetPlayerSummaries/v2/', { steamids: steamId }, ctx, 'profile'),
     level: (steamId, ctx) => request('/IPlayerService/GetSteamLevel/v1/', { input_json: JSON.stringify({ steamid: exactSteamId(steamId) }) }, ctx, 'profile'),
     library: (steamId, ctx) => request('/IPlayerService/GetOwnedGames/v1/', {
-      input_json: JSON.stringify({ steamid: exactSteamId(steamId), include_appinfo: true, include_played_free_games: true }),
+      input_json: JSON.stringify({
+        steamid: exactSteamId(steamId),
+        include_appinfo: true,
+        include_played_free_games: true,
+        include_extended_appinfo: true,
+        include_free_sub: true,
+        skip_unvetted_apps: false,
+      }),
     }, ctx, 'library'),
     assets,
     recent: (steamId, ctx) => request('/IPlayerService/GetRecentlyPlayedGames/v1/', { input_json: JSON.stringify({ steamid: exactSteamId(steamId), count: 0 }) }, ctx, 'recent'),
+    badges: (steamId, ctx) => request('/IPlayerService/GetBadges/v1/', {
+      input_json: JSON.stringify({ steamid: exactSteamId(steamId) }),
+    }, ctx, 'badges'),
+    communityBadgeProgress: (steamId, badgeId, ctx) => request('/IPlayerService/GetCommunityBadgeProgress/v1/', {
+      input_json: JSON.stringify({ steamid: exactSteamId(steamId), badgeid: badgeId }),
+    }, ctx, 'badges'),
     schema: (appId, language, ctx) => request('/ISteamUserStats/GetSchemaForGame/v2/', { appid: appId, l: language }, ctx, 'game-schema', true),
     achievements: (steamId, appId, language, ctx) => request('/ISteamUserStats/GetPlayerAchievements/v1/', { steamid: steamId, appid: appId, l: language }, ctx, 'game-achievements', true),
     stats: (steamId, appId, ctx) => request('/ISteamUserStats/GetUserStatsForGame/v2/', { steamid: steamId, appid: appId }, ctx, 'game-stats', true),
     globalAchievements: (appId, ctx) => request('/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/', { gameid: appId }, ctx, 'game-rarity', true),
+    currentPlayers: (appId, ctx) => request('/ISteamUserStats/GetNumberOfCurrentPlayers/v1/', { appid: appId }, ctx, 'current-players', true),
   };
 }
 

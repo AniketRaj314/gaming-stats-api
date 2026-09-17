@@ -2,11 +2,11 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.2.0** adds the independently cached Epic integration. It is
-implemented behind a disabled deployment gate until the owner connection and
-live validation are complete. Steam and PSN remain live. See the
+Version **3.4.0** expands Steam's non-sensitive source-data coverage. The Epic
+integration remains behind a disabled deployment gate until the owner connection
+and live validation are complete. Steam and PSN remain live. See the
 [release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
-and [PSN guide](docs/psn.md). Valorant uses
+the [PSN guide](docs/psn.md), and the [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
 during frontend migration.
 
@@ -14,7 +14,7 @@ during frontend migration.
 | --- | --- | --- |
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
-| Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/games/:appId` | Live; opt-in for other installations |
+| Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/badges`, `/steam/games/:appId` | Live; opt-in for other installations |
 | Epic | `/epic/library`, `/epic/games/:gameId` | Implemented; owner connection required; disabled by default |
 
 Playnite is being evaluated as a source for local PC games; see the
@@ -56,7 +56,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; encrypted SQLite sessions and cached snapshots for PSN and Epic
 - PSN played history, trophy summary, current presence, and per-game trophy details
-- Steam profile, owned library with icons and full cover art, recent playtime, achievements, rarity, and exposed game stats
+- Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata and artwork, recent playtime, badges/XP, achievements, rarity, title stats, and current players
 - Epic claimed base-game library, artwork, playtime, and automatic discovery of new claims
 
 ## Requirements
@@ -199,7 +199,7 @@ and generate a fresh value before reconnecting.
 | `STEAM_ID` | Yes for Steam | Exact 17-digit owner SteamID64 |
 | `STEAM_WEB_API_KEY` | Yes for Steam | Private 32-character hexadecimal Steam user Web API key |
 | `STEAM_LANGUAGE` | No | Achievement/schema localization language. Defaults to `english` |
-| `STEAM_REFRESH_MINUTES` | No | Profile, library, and recent cadence. Defaults to `15`; allowed `5–1440` |
+| `STEAM_REFRESH_MINUTES` | No | Profile, library, recent, and badge cadence. Defaults to `15`; allowed `5–1440` |
 | `STEAM_DETAILS_MINUTES` | No | Per-game achievement/stat cadence. Defaults to `720`; allowed `30–10080` |
 | `STEAM_MAX_STALE_HOURS` | No | Steam stale serving window. Defaults to `24`; allowed `1–168` |
 | `ENABLE_EPIC` | No | Enables Epic cached routes and scheduler. Defaults to `false`; connect and refresh before enabling |

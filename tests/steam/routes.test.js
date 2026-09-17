@@ -3,7 +3,7 @@ const request = require('supertest');
 const { requireApiKey } = require('../../src/shared/auth');
 const { createSteamRouter } = require('../../src/providers/steam/routes');
 
-const routes = ['/profile', '/library', '/recent', '/games/570'];
+const routes = ['/profile', '/library', '/recent', '/badges', '/games/570'];
 function app(service) {
   const value = express();
   value.use('/steam', requireApiKey(['fixture-read-key']), createSteamRouter({ service }));

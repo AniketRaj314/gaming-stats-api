@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.4.0 — 2026-09-17
+
+- Expand the Steam library request to include free subscriptions, extended app
+  information, unvetted apps, and Steam Deck playtime.
+- Preserve safe StoreBrowse catalog facts, review summaries, compatibility data,
+  content descriptors, game capability flags, and recognized artwork variants.
+- Add `GET /steam/badges` with Steam XP/level thresholds, owned badges, and
+  Community badge quest completion.
+- Preserve all three Steam avatar sizes and public profile-state fields.
+- Enrich per-game details with schema version/default values, both achievement
+  icon states, and Steam's observed current-player count.
+- Add a provider data-coverage policy that records the source-data contract,
+  review status, and intentional privacy/security exclusions.
+
 ## 3.3.1 — 2026-09-17
 
 - Resolve Steam library-capsule paths from batched StoreBrowse asset metadata so
