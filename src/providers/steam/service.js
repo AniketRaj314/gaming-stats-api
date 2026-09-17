@@ -44,12 +44,15 @@ function createService({ store, client, config, now = Date.now, report = () => {
     }
   }
 
-  async function detailPayload(id, ctx) {
-    const calls = {
+  async function detailPayload(id, ctx, hasCommunityVisibleStats) {
+    const calls = hasCommunityVisibleStats ? {
       schema: client.schema(id, config.language, ctx),
       achievements: client.achievements(config.steamId, id, config.language, ctx),
       stats: client.stats(config.steamId, id, ctx),
       global: client.globalAchievements(id, ctx),
+      currentPlayers: client.currentPlayers(id, ctx),
+    } : {
+      currentPlayers: client.currentPlayers(id, ctx),
     };
     const names = Object.keys(calls);
     const settled = await Promise.allSettled(Object.values(calls));
@@ -62,12 +65,13 @@ function createService({ store, client, config, now = Date.now, report = () => {
     });
     const fatal = settled.find(result => result.status === 'rejected'
       && !(result.reason instanceof ProviderError && ['not-supported', 'forbidden'].includes(result.reason.code)));
-    if (fatal && !values.schema && !values.achievements && !values.stats && !values.global) throw fatal.reason;
+    if (fatal && !Object.keys(values).length) throw fatal.reason;
     return normalize.details({
       schemaRaw: values.schema,
       achievementsRaw: values.achievements,
       statsRaw: values.stats,
       globalRaw: values.global,
+      currentPlayersRaw: values.currentPlayers,
       failures,
     });
   }
@@ -98,15 +102,25 @@ function createService({ store, client, config, now = Date.now, report = () => {
         const preview = normalize.recent(raw);
         const assets = await client.assets(preview.games.map(game => game.appId), config.language, ctx);
         payload = normalize.recent(raw, assets);
+      } else if (kind === 'badges') {
+        resource = 'badges';
+        const [badgesResult, questsResult] = await Promise.allSettled([
+          client.badges(config.steamId, ctx), client.communityBadgeProgress(config.steamId, 2, ctx),
+        ]);
+        if (badgesResult.status === 'rejected') throw badgesResult.reason;
+        payload = normalize.badges(badgesResult.value, questsResult.status === 'fulfilled' ? questsResult.value : null, {
+          quests: questsResult.status === 'rejected' ? safeError(questsResult.reason) : null,
+        });
       } else if (kind === 'details') {
         const id = normalize.appId(requestedAppId);
         resource = `game:${id}`;
         const library = read('library');
         const owned = library.games?.find(item => item.appId === id);
         if (!owned) throw new ProviderError('game-not-in-library', 'details');
+        payload = await detailPayload(id, ctx, owned.hasCommunityVisibleStats);
         if (!owned.hasCommunityVisibleStats) {
-          payload = normalize.details({ failures: { schema: 'game-schema:not-supported', achievements: 'game-achievements:not-supported', stats: 'game-stats:not-supported' } });
-        } else payload = await detailPayload(id, ctx);
+          payload = { ...payload, achievementStatus: 'not-supported', statsStatus: 'not-supported' };
+        }
       } else throw new ProviderError('unknown-job', 'worker');
       const finished = now();
       const interval = kind === 'details' ? config.detailsMs : config.refreshMs;
@@ -120,7 +134,7 @@ function createService({ store, client, config, now = Date.now, report = () => {
 
   async function refresh() {
     const results = [];
-    for (const kind of ['profile', 'library', 'recent']) results.push(await run(kind));
+    for (const kind of ['profile', 'library', 'recent', 'badges']) results.push(await run(kind));
     return results;
   }
 
@@ -132,15 +146,6 @@ function createService({ store, client, config, now = Date.now, report = () => {
     if (!owned) return { httpStatus: 404, body: { error: 'Game not in the cached Steam library' } };
     const resource = `game:${id}`;
     const row = store.get(resource);
-    if (!owned.hasCommunityVisibleStats && !row) {
-      return { httpStatus: 200, body: {
-        schemaVersion: 1, provider: 'steam', accountRef: 'owner', status: 'ready', stale: false,
-        lastSuccessAt: library.lastSuccessAt, lastAttemptAt: library.lastAttemptAt, nextRefreshAt: null,
-        game: owned, achievementStatus: 'not-supported', achievementCoverage: { defined: 0, playerRows: 0, unlocked: 0, unlockedWithKnownGlobalPercent: 0 },
-        achievements: [], rarestUnlock: null, rarityComparison: 'unlocked-achievements-with-known-global-percent',
-        statsStatus: 'not-supported', stats: [],
-      } };
-    }
     const detail = read(resource);
     if (!row) {
       return { httpStatus: 200, body: { ...detail, status: 'pending', game: owned,
@@ -155,12 +160,11 @@ function createService({ store, client, config, now = Date.now, report = () => {
 
   async function tick() {
     if (stopped || running) return;
-    for (const resource of ['profile', 'library', 'recent']) {
+    for (const resource of ['profile', 'library', 'recent', 'badges']) {
       if (due(resource) <= now()) return run(resource);
     }
     const library = read('library');
-    const candidates = (library.games || []).filter(item => item.hasCommunityVisibleStats)
-      .map(item => ({ id: item.appId, due: due(`game:${item.appId}`) }))
+    const candidates = (library.games || []).map(item => ({ id: item.appId, due: due(`game:${item.appId}`) }))
       .sort((a, b) => a.due - b.due || a.id - b.id);
     if (candidates[0]?.due <= now()) return run('details', candidates[0].id);
   }

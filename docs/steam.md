@@ -12,10 +12,12 @@ missing read keys, snapshots survived the activation redeploy, and cached PSN
 and Valorant health remained available. Numeric game stats remain title-specific;
 the verified title exposed achievements but did not expose numeric stats.
 
-The provider exposes the configured owner's public profile and presence, owned
-games and playtime, Steam's recent two-week playtime, per-game achievements,
-global achievement rarity, and numeric game stats where each title supports and
-shares them. Steam privacy settings and per-game API support determine coverage.
+The provider exposes the configured owner's public profile and presence, all
+API-visible owned and free-subscription games, platform and Steam Deck playtime,
+safe catalog metadata and artwork, recent activity, badges and XP, Community
+badge quests, per-game achievements, global achievement rarity, title-defined
+numeric stats, and observed current-player counts. Steam privacy settings and
+per-game API support determine coverage.
 
 ## Official API scope
 
@@ -26,11 +28,15 @@ The implementation uses current official interfaces on
 - `IPlayerService/GetSteamLevel/v1`
 - `IPlayerService/GetOwnedGames/v1`
 - `IPlayerService/GetRecentlyPlayedGames/v1`
-- `IStoreBrowseService/GetItems/v1` with `include_assets` for batched cover metadata
+- `IPlayerService/GetBadges/v1`
+- `IPlayerService/GetCommunityBadgeProgress/v1` for Community badge ID 2
+- `IStoreBrowseService/GetItems/v1` with assets, release, platforms, reviews,
+  basic information, categories and tags
 - `ISteamUserStats/GetSchemaForGame/v2`
 - `ISteamUserStats/GetPlayerAchievements/v1`
 - `ISteamUserStats/GetUserStatsForGame/v2`
 - `ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2`
+- `ISteamUserStats/GetNumberOfCurrentPlayers/v1`
 
 The private key is sent in the `x-webapi-key` header, never in the URL. Requests
 use HTTPS, refuse redirects, have ten-second request and 45-second job deadlines,
@@ -99,9 +105,9 @@ npm run steam:refresh
 npm run steam:status
 ```
 
-`steam:refresh` fetches profile, library, and recent activity independently. It
+`steam:refresh` fetches profile, library, recent activity, and badges independently. It
 prints only job results, not account data or the Steam key. A successful status
-shows all three resources as `ready`. Start the local service without Valorant
+shows all four resources as `ready`. Start the local service without Valorant
 refreshes:
 
 ```sh
@@ -154,9 +160,10 @@ the existing `X-API-Key` header and returns `Cache-Control: private, no-store`.
 | Route | Data |
 | --- | --- |
 | `GET /steam/profile` | Profile, visibility, persona state, level, current game |
-| `GET /steam/library` | Owned games, lifetime/platform playtime, aggregate totals |
+| `GET /steam/library` | Owned/free-sub games, playtime, capabilities, safe catalog facts and artwork |
 | `GET /steam/recent` | Games and playtime in Steam's recent two-week window |
-| `GET /steam/games/:appId` | Owned game, achievements, global rarity, exposed stats |
+| `GET /steam/badges` | Level/XP, owned badges, Community badge quest completion |
+| `GET /steam/games/:appId` | Owned game, achievements/schema, rarity, title stats, current players |
 
 Use a numeric `appId`/`providerGameId` from the cached library. Malformed IDs
 return 400. A valid app absent from the cached library returns 404. Known games
@@ -171,20 +178,38 @@ return 200 while details are `pending`, `not-supported`, `private`, or
   `null`; explicit zero remains `0`.
 - Totals sum app records. They are not merged with Playnite, Epic, PSN, or other
   editions and stores.
-- `include_played_free_games=true` includes played free titles, but upstream
-  privacy and Steam's ownership semantics still define coverage.
+- `include_played_free_games`, `include_free_sub`, extended app information, and
+  unvetted-app inclusion are enabled. Upstream privacy and Steam's ownership
+  semantics still define coverage.
 - Recent activity uses Steam's two-week window and can be empty legitimately.
 - Every game record keeps Steam's small `iconUrl` and a separate `coverUrl` for
   the full 600×900 library capsule. The provider resolves current content-hashed
   paths from Steam StoreBrowse asset metadata; `coverUrl` is `null` when Steam
   does not publish a capsule for that app.
+- Game records also retain Steam Deck and disconnected playtime, content
+  descriptors, and source flags for Workshop, Market, DLC, leaderboards, and
+  community-visible stats. Missing source booleans remain `null`.
+- `store` retains bounded StoreBrowse source facts: item type/visibility/free
+  status, safe store URL, short description, developers/publishers/franchises,
+  tags, categories, review summaries, release time, platform/compatibility facts,
+  and all recognized artwork variants. Missing variants remain `null`.
+- `avatarUrls` retains Steam's small, medium, and full avatar URLs. `avatarUrl`
+  remains the best available size for compatibility.
+- Badges retain source XP values and completion facts without calculating a new
+  progress score. Community quests are specifically for badge ID 2; their
+  independent availability is reported by `communityBadgeQuestStatus`.
 - `hasCommunityVisibleStats` controls background detail enrichment. Many games
   expose no achievements or stats through the Web API.
 - Locked hidden achievements conceal their name, description, and icon.
 - `globalPercent=0` is known data. Rarest unlock compares only achievements that
   are unlocked and have a known global percentage.
 - Game stats are title-defined numeric values. The API retains their stable name,
-  optional display name, and value without inventing units or meaning.
+  optional display name, schema default, and value without inventing units or meaning.
+- `currentPlayers` is Steam's online current-player observation and can be
+  `null`/unavailable. It is timestamped by the enclosing detail snapshot.
+
+The cross-provider retention policy and intentional privacy exclusions are in
+[`data-coverage.md`](./data-coverage.md).
 
 ## Cache, scheduling, and recovery
 
@@ -192,7 +217,7 @@ Snapshots live under `GAMING_DATA_DIR/steam` as mode-0600 JSON files in mode-070
 directories. Writes use a same-directory temporary file, filesystem sync, and an
 atomic rename. No Steam API key or raw upstream response is written to snapshots.
 
-Profile, library, and recent snapshots refresh every 15 minutes by default.
+Profile, library, recent, and badge snapshots refresh every 15 minutes by default.
 Eligible game details refresh every 12 hours, one game per 30-second scheduler
 tick after core resources are current. Failures use bounded exponential backoff.
 Old payloads can be served as `stale` for the configured window; expired or
@@ -208,9 +233,9 @@ Steam, update the hosting secret, and redeploy.
 
 1. Configure the SteamID64, private user key, persistent path, and read API keys.
 2. Deploy with `ENABLE_STEAM=false`.
-3. Run `steam:refresh` and confirm profile, library, and recent are ready.
+3. Run `steam:refresh` and confirm profile, library, recent, and badges are ready.
 4. Check that Steam privacy exposes the intended data and nothing more.
 5. Enable Steam, redeploy, and confirm status after restart.
-6. Verify all four authenticated routes from the public origin.
+6. Verify all five authenticated routes from the public origin.
 7. Observe at least one background per-game enrichment before integrating the
    frontend achievement and stats views.

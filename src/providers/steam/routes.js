@@ -12,7 +12,7 @@ function createSteamRouter({ service, unavailableStatus = 'disabled' } = {}) {
       return res.status(status).json({ provider: 'steam', status: status === 400 ? 'invalid-request' : 'unavailable' });
     }
   };
-  for (const resource of ['profile', 'library', 'recent']) {
+  for (const resource of ['profile', 'library', 'recent', 'badges']) {
     router.get('/' + resource, read((req, res) => {
       const body = service.read(resource);
       return res.status(['ready', 'stale'].includes(body.status) ? 200 : 503).json(body);

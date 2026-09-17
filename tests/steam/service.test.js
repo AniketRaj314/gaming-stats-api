@@ -20,22 +20,26 @@ beforeEach(() => {
     context: jest.fn(() => ({ signal: new AbortController().signal, remaining: 20 })),
     profile: jest.fn(async () => f.profile), level: jest.fn(async () => f.level),
     library: jest.fn(async () => f.library), recent: jest.fn(async () => f.recent),
+    badges: jest.fn(async () => f.badges), communityBadgeProgress: jest.fn(async () => f.communityBadgeProgress),
     assets: jest.fn(async ids => ids.length === 1 ? f.recentAssets : f.assets),
     schema: jest.fn(async () => f.schema), achievements: jest.fn(async () => f.achievements),
     stats: jest.fn(async () => f.stats), globalAchievements: jest.fn(async () => f.globalAchievements),
+    currentPlayers: jest.fn(async () => f.currentPlayers),
   };
   settings = { steamId: f.steamId, language: 'english', refreshMs: 900000, detailsMs: 3600000, maxStaleMs: 86400000, jobMs: 45000 };
   service = createService({ store, client, config: settings, now: () => time });
 });
 
-test('refresh publishes profile, library, and recent snapshots independently', async () => {
+test('refresh publishes profile, library, recent, and badge snapshots independently', async () => {
   expect(await service.refresh()).toEqual([
     { ok: true, kind: 'profile' }, { ok: true, kind: 'library' }, { ok: true, kind: 'recent' },
+    { ok: true, kind: 'badges' },
   ]);
   expect(service.read('profile')).toMatchObject({ status: 'ready', personaName: 'Fixture Player', steamLevel: 42 });
   expect(service.read('library')).toMatchObject({ status: 'ready', totals: { gameCount: 2, totalPlaytimeMinutes: 720 } });
   expect(service.read('library').games[0].coverUrl).toContain('/library_600x900_2x.jpg');
   expect(service.read('recent')).toMatchObject({ status: 'ready', totals: { gameCount: 1, playtimeMinutes: 30 } });
+  expect(service.read('badges')).toMatchObject({ status: 'ready', playerLevel: 42, badges: [{ badgeId: 1, xp: 100 }] });
 });
 
 test('profile remains available when Steam level is private or unsupported', async () => {
@@ -44,12 +48,21 @@ test('profile remains available when Steam level is private or unsupported', asy
   expect(service.read('profile')).toMatchObject({ status: 'ready', personaName: 'Fixture Player', steamLevel: null });
 });
 
+test('owned badges remain available when Community badge quests are private', async () => {
+  const { ProviderError } = require('../../src/shared/providerError');
+  client.communityBadgeProgress.mockRejectedValue(new ProviderError('forbidden', 'badges'));
+  expect(await service.run('badges')).toEqual({ ok: true, kind: 'badges' });
+  expect(service.read('badges')).toMatchObject({ status: 'ready', communityBadgeQuestStatus: 'private',
+    badges: [{ badgeId: 1 }], communityBadgeQuests: [] });
+});
+
 test('known game details are pending, then combine achievements, rarity, and stats', async () => {
   await service.run('library');
   expect(service.game('570').body).toMatchObject({ status: 'pending', game: { appId: 570 }, achievementStatus: 'pending' });
   expect(await service.run('details', 570)).toEqual({ ok: true, kind: 'details' });
-  expect(service.game('570').body).toMatchObject({ status: 'ready', achievementStatus: 'available', statsStatus: 'available', rarestUnlock: { apiName: 'FIRST' } });
-  expect(service.game('730').body).toMatchObject({ status: 'ready', achievementStatus: 'not-supported', statsStatus: 'not-supported' });
+  expect(service.game('570').body).toMatchObject({ status: 'ready', currentPlayers: 12345, currentPlayersStatus: 'available',
+    achievementStatus: 'available', statsStatus: 'available', rarestUnlock: { apiName: 'FIRST' } });
+  expect(service.game('730').body).toMatchObject({ status: 'pending', achievementStatus: 'pending', statsStatus: 'pending' });
   expect(service.game('999').httpStatus).toBe(404);
 });
 
@@ -72,6 +85,8 @@ test('scheduler refreshes due core resources before per-game enrichment', async 
   expect(client.library).toHaveBeenCalledTimes(1);
   await service.tick();
   expect(client.recent).toHaveBeenCalledTimes(1);
+  await service.tick();
+  expect(client.badges).toHaveBeenCalledTimes(1);
   await service.tick();
   expect(client.schema).toHaveBeenCalledWith(570, 'english', expect.any(Object));
 });

@@ -14,6 +14,7 @@ async function main() {
       profile: service.read('profile').status,
       library: service.read('library').status,
       recent: service.read('recent').status,
+      badges: service.read('badges').status,
     }, null, 2));
     return;
   }

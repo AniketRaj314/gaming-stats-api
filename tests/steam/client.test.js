@@ -24,7 +24,9 @@ test('uses current official endpoint versions and bounded query values', async (
   expect(fetchImpl.mock.calls[0][0]).toContain('/ISteamUser/GetPlayerSummaries/v2/');
   expect(fetchImpl.mock.calls[0][0]).toContain(`steamids=${f.steamId}`);
   expect(fetchImpl.mock.calls[1][0]).toContain('/IPlayerService/GetOwnedGames/v1/');
-  expect(decodeURIComponent(fetchImpl.mock.calls[1][0])).toContain(`"steamid":"${f.steamId}"`);
+  const ownedInput = JSON.parse(new URL(fetchImpl.mock.calls[1][0]).searchParams.get('input_json'));
+  expect(ownedInput).toMatchObject({ steamid: f.steamId, include_appinfo: true, include_played_free_games: true,
+    include_extended_appinfo: true, include_free_sub: true, skip_unvetted_apps: false });
   expect(fetchImpl.mock.calls[2][0]).toContain('/ISteamUserStats/GetSchemaForGame/v2/');
   expect(fetchImpl.mock.calls[2][0]).toContain('appid=570');
 });
@@ -37,7 +39,21 @@ test('batches full cover-art metadata through Steam StoreBrowse', async () => {
   expect(url.pathname).toBe('/IStoreBrowseService/GetItems/v1/');
   const input = JSON.parse(url.searchParams.get('input_json'));
   expect(input).toMatchObject({ ids: [{ appid: 570 }, { appid: 730 }],
-    context: { language: 'english', country_code: 'US', steam_realm: 1 }, data_request: { include_assets: true } });
+    context: { language: 'english', country_code: 'US', steam_realm: 1 }, data_request: {
+      include_assets: true, include_release: true, include_platforms: true, include_reviews: true,
+      include_basic_info: true, include_categories: true, include_tag_count: 20,
+    } });
+});
+
+test('uses official badge, quest, and current-player interfaces', async () => {
+  fetchImpl.mockImplementation(async () => json({ response: {} }));
+  await client.badges(f.steamId, client.context());
+  await client.communityBadgeProgress(f.steamId, 2, client.context());
+  await client.currentPlayers(570, client.context());
+  expect(fetchImpl.mock.calls[0][0]).toContain('/IPlayerService/GetBadges/v1/');
+  expect(fetchImpl.mock.calls[1][0]).toContain('/IPlayerService/GetCommunityBadgeProgress/v1/');
+  expect(JSON.parse(new URL(fetchImpl.mock.calls[1][0]).searchParams.get('input_json'))).toMatchObject({ badgeid: 2 });
+  expect(fetchImpl.mock.calls[2][0]).toContain('/ISteamUserStats/GetNumberOfCurrentPlayers/v1/');
 });
 
 test('maps optional unsupported data, rate limits, and network failures without leaking bodies', async () => {

@@ -17,7 +17,7 @@ test('public provider docs require no credentials or snapshot/upstream access', 
     for (const route of ['/psn/library', '/psn/summary', '/psn/presence', '/psn/games/PPSA12345_00']) {
       expect((await request(app).get(route)).status).toBe(401);
     }
-    for (const route of ['/steam/profile', '/steam/library', '/steam/recent', '/steam/games/570']) {
+    for (const route of ['/steam/profile', '/steam/library', '/steam/recent', '/steam/badges', '/steam/games/570']) {
       expect((await request(app).get(route)).status).toBe(401);
     }
     for (const route of ['/epic/library', '/epic/games/' + 'E'.repeat(43)]) {
@@ -48,14 +48,15 @@ test('Steam guides share endpoint contracts, setup, examples, and privacy semant
   const app = createApp();
   for (const route of ['/steam/docs', '/steam/llms.txt']) {
     const res = await request(app).get(route);
-    for (const text of ['/steam/profile', '/steam/library', '/steam/recent', '/steam/games/:appId',
-      'globalPercent', 'achievementStatus', 'statsStatus', 'iconUrl', 'coverUrl', '600×900',
+    for (const text of ['/steam/profile', '/steam/library', '/steam/recent', '/steam/badges', '/steam/games/:appId',
+      'globalPercent', 'achievementStatus', 'statsStatus', 'currentPlayersStatus', 'communityBadgeQuests',
+      'playtimeDeckMinutes', 'iconUrl', 'coverUrl', '600×900',
       'STEAM_WEB_API_KEY', 'ENABLE_STEAM=false',
       'private, no-store', 'HTTP 401', 'HTTP 503']) expect(res.text).toContain(text);
   }
   const txt = (await request(app).get('/steam/llms.txt')).text;
   const examples = [...txt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]));
-  expect(examples).toHaveLength(4);
+  expect(examples).toHaveLength(5);
   expect(examples.every(value => value.schemaVersion === 1 && value.provider === 'steam')).toBe(true);
   expect((await request(app).get('/llms.txt')).text).toContain('(/steam/llms.txt)');
 });

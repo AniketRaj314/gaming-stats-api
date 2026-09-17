@@ -20,7 +20,7 @@ class SteamStore {
   }
 
   file(resource) {
-    if (['profile', 'library', 'recent'].includes(resource)) return path.join(this.directory, `${resource}.json`);
+    if (['profile', 'library', 'recent', 'badges'].includes(resource)) return path.join(this.directory, `${resource}.json`);
     const match = /^game:(\d{1,10})$/.exec(resource);
     if (match) return path.join(this.gamesDirectory, `${match[1]}.json`);
     throw new ProviderError('invalid-resource', 'storage');
