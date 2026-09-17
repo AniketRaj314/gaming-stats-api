@@ -22,14 +22,21 @@ function mockFetchOk(data) {
 }
 
 describe('initMapData', () => {
-  test('populates MAP_DATA[displayName] with { displayIcon, splash }', async () => {
+  test('retains the substantial map artwork variants', async () => {
     mockFetchOk([
-      { displayName: 'Ascent', displayIcon: 'ascent-icon.png', splash: 'ascent-splash.png' },
+      { displayName: 'Ascent', displayIcon: 'ascent-icon.png', splash: 'ascent-splash.png',
+        listViewIcon: 'ascent-list.png', listViewIconTall: 'ascent-list-tall.png', backgroundImage: 'ascent-background.png',
+        stylizedBackgroundImage: 'ascent-stylized.png', premierBackgroundImage: 'ascent-premier.png' },
     ]);
     await initMapData();
     expect(MAP_DATA['Ascent']).toEqual({
       displayIcon: 'ascent-icon.png',
       splash: 'ascent-splash.png',
+      listViewIcon: 'ascent-list.png',
+      listViewIconTall: 'ascent-list-tall.png',
+      backgroundImage: 'ascent-background.png',
+      stylizedBackgroundImage: 'ascent-stylized.png',
+      premierBackgroundImage: 'ascent-premier.png',
     });
   });
 

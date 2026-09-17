@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.5.0 — 2026-09-17
+
+- Preserve PSN concept cover art, logos, master art, backgrounds, hero art,
+  portrait and landscape banners, and screenshots as typed per-game media.
+- Preserve every safe Epic catalog image with its type, dimensions, byte size,
+  alt text, upload time, and MD5 checksum while retaining `imageUrl`.
+- Refresh legacy Epic catalog cache rows once so the expanded artwork contract
+  becomes available immediately after deployment.
+- Expand Valorant agent and map enrichment with the official static artwork
+  variants and ability/role icons without consuming a live Valorant run.
+- Audit current production source shapes for all four providers; Steam's
+  observed StoreBrowse artwork and screenshot fields were already retained.
+- Verification: all 276 offline tests passed; no live Valorant refresh was run.
+
 ## 3.4.1 — 2026-09-17
 
 - Complete Steam StoreBrowse artwork coverage with 2× header/main/small

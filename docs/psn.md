@@ -122,7 +122,7 @@ website's server-side proxy. Responses use `Cache-Control: private, no-store`.
 
 | Route | Data |
 | --- | --- |
-| `GET /psn/library` | PS4/PS5 played records, concept grouping IDs, times and coverage |
+| `GET /psn/library` | PS4/PS5 played records, concept grouping IDs, typed artwork/screenshots, times and coverage |
 | `GET /psn/summary` | Trophy level, grade counts, visible-set count |
 | `GET /psn/presence` | Observed activity and reported games |
 | `GET /psn/games/:titleId` | One owned played record, related editions, visible trophy details |
@@ -172,6 +172,12 @@ empty set. Successful empty mapping is `no-visible-synced-set`.
 - Record totals are not deduplicated cross-platform lifetime hours. Concepts are
   grouping hints; source title/platform records remain separate. No fuzzy merges
   or automatic Steam/Epic cross-store links are implemented.
+- `artwork.url` retains the existing primary title image and
+  `artwork.localizedUrl` retains Sony's localized variant. `artwork.images`
+  keeps every safe typed image from the record and concept media, including
+  cover, logo, master, background, hero, banner, portrait, and screenshot
+  records. Exact record/concept duplicates are collapsed without selecting an
+  arbitrary subset. Sony does not supply dimensions in this response.
 - `hiddenFlag: true` trophy lists are excluded. Mapping uses exact title IDs and
   intersects only visible sets. Read-time visibility checks also filter cached details.
 - A trophy without a matching player row has unknown earned state; locked or

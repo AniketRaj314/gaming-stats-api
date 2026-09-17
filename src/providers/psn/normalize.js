@@ -21,6 +21,25 @@ function artwork(v) {
     return u.protocol === 'https:' && imageHosts.has(u.hostname) && !u.username && !u.password && !u.port && !u.search && !u.hash ? u.href : null;
   } catch { return null; }
 }
+function mediaImages(...values) {
+  const seen = new Set();
+  const output = [];
+  for (const value of values) {
+    if (!object(value) || !Array.isArray(value.images)) continue;
+    for (const row of value.images) {
+      if (!object(row)) continue;
+      const type = text(row.type, 128);
+      const format = text(row.format, 128);
+      const url = artwork(row.url);
+      if (!type || !url) continue;
+      const key = `${type}\0${format || ''}\0${url}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      output.push({ type, format, url });
+    }
+  }
+  return output;
+}
 function durationMinutes(v) {
   if (typeof v !== 'string') return null;
   const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.exec(v);
@@ -42,7 +61,10 @@ function library(records) {
       canonicalGameId: null, name: r.name, platform: r.category === 'ps4_game' ? 'PS4' : r.category === 'ps5_native_game' ? 'PS5' : null,
       playtimeMinutes: durationMinutes(r.playDuration), playCount: integer(r.playCount),
       firstPlayedAt: date(r.firstPlayedDateTime), lastPlayedAt: date(r.lastPlayedDateTime),
-      activityStatus: 'played-history', artwork: { url: artwork(r.imageUrl), width: null, height: null },
+      activityStatus: 'played-history', artwork: {
+        url: artwork(r.imageUrl), localizedUrl: artwork(r.localizedImageUrl), width: null, height: null,
+        images: mediaImages(r.media, r.concept?.media),
+      },
     };
   });
   games.sort((a, b) => (b.playtimeMinutes ?? -1) - (a.playtimeMinutes ?? -1) || a.providerGameId.localeCompare(b.providerGameId));
@@ -124,4 +146,4 @@ function trophies(definitions, player) {
     rarityCoverage: { earned: result.filter(t => t.earned === true).length, earnedWithKnownRarity: knownRarity.length } };
 }
 
-module.exports = { object, text, nonnegative, integer, identifier, accountId, date, artwork, durationMinutes, library, trophyLists, summary, presence, mappedSets, trophies };
+module.exports = { object, text, nonnegative, integer, identifier, accountId, date, artwork, mediaImages, durationMinutes, library, trophyLists, summary, presence, mappedSets, trophies };

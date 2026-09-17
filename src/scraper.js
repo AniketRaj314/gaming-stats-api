@@ -302,8 +302,16 @@ async function scrapeStats(username, callerPlaylist, modules) {
     for (const entry of merged.agents) {
       const agentData = AGENT_DATA[entry.agent];
       entry.icon = agentData?.icon ?? null;
+      entry.displayIconSmall = agentData?.displayIconSmall ?? null;
       entry.portrait = agentData?.portrait ?? null;
+      entry.portraitV2 = agentData?.portraitV2 ?? null;
+      entry.bustPortrait = agentData?.bustPortrait ?? null;
       entry.killfeedPortrait = agentData?.killfeedPortrait ?? null;
+      entry.minimapPortrait = agentData?.minimapPortrait ?? null;
+      entry.background = agentData?.background ?? null;
+      entry.homeScreenPromoTileImage = agentData?.homeScreenPromoTileImage ?? null;
+      entry.roleIcon = agentData?.roleIcon ?? null;
+      entry.abilityIcons = agentData?.abilityIcons ?? [];
       // role is already scraped from the HTML
     }
     log('ENRICH', `${username} — enriched ${merged.agents.length} agent(s) with static data`);
@@ -315,11 +323,24 @@ async function scrapeStats(username, callerPlaylist, modules) {
       const mapData = MAP_DATA[entry.map];
       entry.displayIcon = mapData?.displayIcon ?? null;
       entry.splash = mapData?.splash ?? null;
+      entry.listViewIcon = mapData?.listViewIcon ?? null;
+      entry.listViewIconTall = mapData?.listViewIconTall ?? null;
+      entry.backgroundImage = mapData?.backgroundImage ?? null;
+      entry.stylizedBackgroundImage = mapData?.stylizedBackgroundImage ?? null;
+      entry.premierBackgroundImage = mapData?.premierBackgroundImage ?? null;
       for (const topAgent of entry.topAgents) {
         const agentData = AGENT_DATA[topAgent.agent];
         topAgent.icon = agentData?.icon ?? null;
+        topAgent.displayIconSmall = agentData?.displayIconSmall ?? null;
         topAgent.portrait = agentData?.portrait ?? null;
+        topAgent.portraitV2 = agentData?.portraitV2 ?? null;
+        topAgent.bustPortrait = agentData?.bustPortrait ?? null;
         topAgent.killfeedPortrait = agentData?.killfeedPortrait ?? null;
+        topAgent.minimapPortrait = agentData?.minimapPortrait ?? null;
+        topAgent.background = agentData?.background ?? null;
+        topAgent.homeScreenPromoTileImage = agentData?.homeScreenPromoTileImage ?? null;
+        topAgent.roleIcon = agentData?.roleIcon ?? null;
+        topAgent.abilityIcons = agentData?.abilityIcons ?? [];
         topAgent.role = agentData?.role ?? null;
       }
     }

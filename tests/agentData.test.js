@@ -23,22 +23,37 @@ function mockFetchOk(data) {
 }
 
 describe('initAgentData', () => {
-  test('populates AGENT_DATA[displayName] with { icon, role, portrait, killfeedPortrait }', async () => {
+  test('retains the substantial agent artwork and ability icons', async () => {
     mockFetchOk([
       {
         displayName: 'Jett',
         displayIcon: 'jett-icon.png',
-        role: { displayName: 'Duelist' },
+        displayIconSmall: 'jett-small.png',
+        role: { displayName: 'Duelist', displayIcon: 'duelist.png' },
         fullPortrait: 'jett-portrait.png',
+        fullPortraitV2: 'jett-portrait-v2.png',
+        bustPortrait: 'jett-bust.png',
         killfeedPortrait: 'jett-killfeed.png',
+        minimapPortrait: 'jett-minimap.png',
+        background: 'jett-background.png',
+        homeScreenPromoTileImage: 'jett-promo.png',
+        abilities: [{ slot: 'Ability1', displayName: 'Updraft', displayIcon: 'updraft.png' }],
       },
     ]);
     await initAgentData();
     expect(AGENT_DATA['Jett']).toEqual({
       icon: 'jett-icon.png',
+      displayIconSmall: 'jett-small.png',
       role: 'Duelist',
+      roleIcon: 'duelist.png',
       portrait: 'jett-portrait.png',
+      portraitV2: 'jett-portrait-v2.png',
+      bustPortrait: 'jett-bust.png',
       killfeedPortrait: 'jett-killfeed.png',
+      minimapPortrait: 'jett-minimap.png',
+      background: 'jett-background.png',
+      homeScreenPromoTileImage: 'jett-promo.png',
+      abilityIcons: [{ slot: 'Ability1', name: 'Updraft', icon: 'updraft.png' }],
     });
   });
 

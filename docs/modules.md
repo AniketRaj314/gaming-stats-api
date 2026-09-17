@@ -223,8 +223,16 @@ Stored separately for `competitive` and `unrated`, then enriched with static age
     "hsPercent": "17.8%",
     "kast": "71.7%",
     "icon": "https://media.valorant-api.com/agents/.../displayicon.png",
+    "displayIconSmall": "https://media.valorant-api.com/agents/.../displayiconsmall.png",
     "portrait": "https://media.valorant-api.com/agents/.../fullportrait.png",
-    "killfeedPortrait": "https://media.valorant-api.com/agents/.../killfeedportrait.png"
+    "portraitV2": "https://media.valorant-api.com/agents/.../fullportrait.png",
+    "bustPortrait": "https://media.valorant-api.com/agents/.../bustportrait.png",
+    "killfeedPortrait": "https://media.valorant-api.com/agents/.../killfeedportrait.png",
+    "minimapPortrait": "https://media.valorant-api.com/agents/.../minimapportrait.png",
+    "background": "https://media.valorant-api.com/agents/.../background.png",
+    "homeScreenPromoTileImage": "https://media.valorant-api.com/agents/.../promo.png",
+    "roleIcon": "https://media.valorant-api.com/agents/.../role.png",
+    "abilityIcons": [{ "slot": "Ability1", "name": "Ability", "icon": "https://..." }]
   }
 ]
 ```
@@ -254,7 +262,12 @@ Stored separately for `competitive` and `unrated`, then enriched with static map
     "adr": "145.2",
     "acs": "228.1",
     "displayIcon": "https://media.valorant-api.com/maps/.../displayicon.png",
-    "splash": "https://media.valorant-api.com/maps/.../splash.png"
+    "splash": "https://media.valorant-api.com/maps/.../splash.png",
+    "listViewIcon": "https://media.valorant-api.com/maps/.../listviewicon.png",
+    "listViewIconTall": "https://media.valorant-api.com/maps/.../listviewicontall.png",
+    "backgroundImage": "https://media.valorant-api.com/maps/.../background.png",
+    "stylizedBackgroundImage": "https://media.valorant-api.com/maps/.../stylized.png",
+    "premierBackgroundImage": "https://media.valorant-api.com/maps/.../premier.png"
   }
 ]
 ```

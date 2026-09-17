@@ -3,6 +3,8 @@ const { ProviderError } = require('../../shared/providerError');
 
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = (value, max = 512) => typeof value === 'string' && value.length > 0 && value.length <= max && !/[\r\n]/.test(value) ? value : null;
+const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+const date = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : null;
 
 function identifier(value, stage = 'schema') {
   if (typeof value !== 'string' || value.length > 256 || !/^[A-Za-z0-9._-]+$/.test(value) || value === '.' || value === '..') {
@@ -62,9 +64,14 @@ function catalogEntry(item, raw) {
   const title = text(raw.title, 512);
   if (!title) throw new ProviderError('invalid-catalog-title', 'catalog');
   const categories = Array.isArray(raw.categories) ? raw.categories.map(value => text(value?.path, 256)).filter(Boolean) : [];
-  const images = Array.isArray(raw.keyImages) ? raw.keyImages.map(value => ({ type: text(value?.type, 128), url: safeImage(value?.url) }))
+  const images = Array.isArray(raw.keyImages) ? raw.keyImages.map(value => ({
+    type: text(value?.type, 128), url: safeImage(value?.url), alt: text(value?.alt, 1024),
+    width: integer(value?.width), height: integer(value?.height), sizeBytes: integer(value?.size),
+    uploadedAt: date(value?.uploadedDate),
+    checksumMd5: typeof value?.md5 === 'string' && /^[a-f\d]{32}$/i.test(value.md5) ? value.md5.toLowerCase() : null,
+  }))
     .filter(value => value.type && value.url) : [];
-  return { key: item.key, title, categories, hasMainGameItem: object(raw.mainGameItem), images };
+  return { schemaVersion: 2, key: item.key, title, categories, hasMainGameItem: object(raw.mainGameItem), images };
 }
 
 function classification(metadata) {
@@ -137,10 +144,12 @@ function library({ inventory: source, catalog, playtimeRaw, accountId, catalogSt
     const status = playtimeUnavailable ? 'unavailable' : observed.size === 0 ? 'unknown' :
       observed.size === 1 && !sharedArtifact ? 'known' : 'ambiguous';
     const seconds = status === 'known' ? [...observed][0] : null;
+    const imageUrl = image(metadata);
     games.push({
       providerGameId: providerGameId(item.namespace, item.catalogItemId),
       name: metadata.title,
-      imageUrl: image(metadata),
+      imageUrl,
+      artwork: { url: imageUrl, images: metadata.images },
       playtimeMinutes: seconds === null ? null : seconds / 60,
       playtimeStatus: status,
       lastPlayedAt: null,

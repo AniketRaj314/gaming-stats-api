@@ -15,7 +15,7 @@ separate future source for local games.
 The first release provides:
 
 - complete paginated Epic library reads before publication;
-- catalog-based base-game classification and artwork;
+- catalog-based base-game classification and complete typed key-image metadata;
 - Epic playtime with explicit known, unknown, ambiguous, and unavailable states;
 - cached `GET /epic/library` and `GET /epic/games/:gameId` routes;
 - encrypted session renewal, persistent scheduling, backoff, and disconnect;
@@ -153,6 +153,11 @@ library returns 503.
   Playnite, PSN, other editions, or similarly named games.
 - `lastPlayedAt` is `null` because the verified playtime response did not provide
   a reliable last-played timestamp.
+- `imageUrl` remains the preferred compatibility image. `artwork.url` repeats
+  that selection while `artwork.images` preserves every safe catalog key image
+  with its type, URL, alt text, width, height, byte size, upload timestamp, and
+  MD5 checksum when Epic supplies those fields. Consumers choose the aspect
+  ratio and image role appropriate to their UI.
 - Artwork accepts only allowlisted HTTPS Epic/Unreal CDN URLs without credentials,
   custom ports, query strings, or fragments.
 

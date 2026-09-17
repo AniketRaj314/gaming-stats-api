@@ -9,6 +9,25 @@ test('library exposes known record totals and coverage, without treating unknown
   expect(result.totals).toMatchObject({ conceptCount: 1, recordCount: 2, knownPlaytimeRecords: 1, unknownPlaytimeRecords: 1 });
   expect(JSON.stringify(result)).not.toContain('accountId');
 });
+test('library retains typed record and concept artwork without duplicate media', () => {
+  const game = n.library(f.games).games[0];
+  expect(game.artwork).toEqual({
+    url: 'https://image.api.playstation.com/game.png',
+    localizedUrl: 'https://image.api.playstation.com/game-localized.png',
+    width: null,
+    height: null,
+    images: [
+      { type: 'GAMEHUB_COVER_ART', format: 'IMAGE', url: 'https://image.api.playstation.com/cover.png' },
+      { type: 'SCREENSHOT', format: 'IMAGE', url: 'https://image.api.playstation.com/screenshot.png' },
+      { type: 'LOGO', format: 'IMAGE', url: 'https://image.api.playstation.com/logo.png' },
+    ],
+  });
+});
+test('library drops unsafe media URLs while retaining valid artwork', () => {
+  const raw = structuredClone(f.games[0]);
+  raw.media.images.push({ type: 'SCREENSHOT', format: 'IMAGE', url: 'https://evil.test/private.png' });
+  expect(n.library([raw]).games[0].artwork.images).toHaveLength(3);
+});
 test('duplicate game IDs fail instead of multiplying totals', () => expect(() => n.library([...f.games, ...f.games])).toThrow('invalid-game-record'));
 test('Sony unknown categories retain records and playtime without guessing a platform', () => {
   const result = n.library([...f.games, { ...f.games[0], titleId: 'UNKNOWN123_00', category: 'unknown', playDuration: 'PT30M' }]);
