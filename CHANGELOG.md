@@ -8,9 +8,11 @@
   generated class names.
 - Treat empty or incomplete Apify datasets as refresh failures so stale values
   stay explicitly stale and do not receive a false successful-refresh timestamp.
-- Confirm the live Tracker profile reports 2,103 hours and correct the production
-  playtime snapshot from that rendered value. Keep the overall Tracker snapshot
-  marked stale until a successful automated refresh updates every module.
+- Manually verify and correct the production snapshot from the rendered public
+  Tracker profile: 21 competitive agents, 12 competitive maps, 29 unrated
+  agents, 13 unrated maps, and 2,103 total hours. Preserve the enriched artwork
+  fields and keep the overall Tracker snapshot marked stale until a successful
+  automated refresh updates every module.
 
 ## 3.5.0 — 2026-09-17
 
