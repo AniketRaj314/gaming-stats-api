@@ -31,12 +31,12 @@ them.
 
 | Provider | Current source-data surface | Coverage review |
 | --- | --- | --- |
-| Steam | Profile/presence, all API-visible owned and free-subscription games, recent games, platform and Deck playtime, safe store/catalog metadata and artwork, badges/XP/community quests, achievements/schema/global rarity, title-defined stats, current players | Audited in 3.4.0 against the owner-key interface list and observed response shapes |
+| Steam | Profile/presence, all API-visible owned and free-subscription games, recent games, platform and Deck playtime, safe store/catalog metadata, current/original artwork and screenshots, badges/XP/community quests, achievements/schema/global rarity, title-defined stats, current players | Audited through 3.4.1 against the owner-key interface list and observed response shapes |
 | PSN | Played history, trophy summary, presence, trophy sets and trophies | Implemented; the next provider pass will audit the already-fetched profile response and every safe field in the current library/trophy/presence payloads |
 | Epic | Claimed PC base-game library, catalog artwork, playtime | Implemented; the detailed field audit will follow a successful owner reconnection so real catalog and account response shapes can be checked safely |
 | Valorant | Profile, rank, agent/map performance and total playtime | Implemented; review will use fixtures and documented schemas without consuming live Valorant runs |
 
-## Steam 3.4.0 coverage
+## Steam 3.4.1 coverage
 
 Steam now uses these read interfaces:
 
@@ -58,8 +58,10 @@ information, and unvetted apps. Each game retains lifetime/recent Windows, macOS
 Linux, Steam Deck, and disconnected playtime when Steam supplies it; workshop,
 market, DLC, leaderboard, community-stat, and content-descriptor facts; icon and
 available StoreBrowse artwork; and safe catalog metadata such as description,
-developers, publishers, tags, categories, review summaries, release time,
-platform compatibility, store path, type, visibility, and free status.
+  developers, publishers, tags, categories, review summaries, release time,
+  platform compatibility, store path, type, visibility, and free status. Current
+  and non-override artwork sets plus ordered all-ages/mature screenshot lists are
+  retained separately.
 
 `GET /steam/badges` retains Steam level/XP thresholds, owned badge records, and
 Community badge quest completion. `GET /steam/games/:appId` retains achievement

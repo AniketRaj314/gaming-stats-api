@@ -41,6 +41,7 @@ test('batches full cover-art metadata through Steam StoreBrowse', async () => {
   expect(input).toMatchObject({ ids: [{ appid: 570 }, { appid: 730 }],
     context: { language: 'english', country_code: 'US', steam_realm: 1 }, data_request: {
       include_assets: true, include_release: true, include_platforms: true, include_reviews: true,
+      include_assets_without_overrides: true, include_screenshots: true,
       include_basic_info: true, include_categories: true, include_tag_count: 20,
     } });
 });

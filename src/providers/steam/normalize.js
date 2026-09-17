@@ -57,6 +57,17 @@ function assetFileUrl(format, id, filename) {
     'https://shared.fastly.steamstatic.com/store_item_assets/').toString();
 }
 
+function resolveAssetUrl(format, id, value) {
+  if (typeof value === 'string' && value.length <= 1024) {
+    const directPattern = new RegExp(`^steam/apps/${id}/[A-Za-z0-9._/-]+(?:\\?t=\\d{1,12})?$`);
+    const path = value.split('?')[0];
+    if (directPattern.test(value) && path.split('/').every(part => part && part !== '.' && part !== '..')) {
+      return new URL(value, 'https://shared.fastly.steamstatic.com/store_item_assets/').toString();
+    }
+  }
+  return assetFileUrl(format, id, value);
+}
+
 function nameRecords(value) {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 100).filter(object).map(row => ({
@@ -75,6 +86,50 @@ function reviewSummary(value) {
   };
 }
 
+function artworkRecord(value, id, success) {
+  const assets = object(value) ? value : {};
+  const image = filename => success === 1 ? assetFileUrl(assets.asset_url_format, id, filename) : null;
+  const pageBackgroundPath = text(assets.page_background_path, 512);
+  const safePageBackgroundPath = pageBackgroundPath
+    && new RegExp(`^app/${id}\\?t=\\d{1,12}$`).test(pageBackgroundPath) ? pageBackgroundPath : null;
+  const libraryCapsuleUrl = image(assets.library_capsule_2x) || image(assets.library_capsule);
+  return {
+    libraryCapsuleUrl,
+    libraryCapsule1xUrl: image(assets.library_capsule),
+    libraryCapsule2xUrl: image(assets.library_capsule_2x),
+    mainCapsuleUrl: image(assets.main_capsule),
+    mainCapsule2xUrl: image(assets.main_capsule_2x),
+    smallCapsuleUrl: image(assets.small_capsule),
+    smallCapsule2xUrl: image(assets.small_capsule_2x),
+    headerUrl: image(assets.header),
+    header2xUrl: image(assets.header_2x),
+    packageHeaderUrl: image(assets.package_header),
+    heroCapsuleUrl: image(assets.hero_capsule),
+    heroCapsule2xUrl: image(assets.hero_capsule_2x),
+    libraryHeroUrl: image(assets.library_hero),
+    libraryHero2xUrl: image(assets.library_hero_2x),
+    libraryHeaderUrl: image(assets.library_header),
+    libraryLogoUrl: image(assets.library_logo),
+    libraryLogo2xUrl: image(assets.library_logo_2x),
+    verticalCapsuleUrl: image(assets.vertical_capsule),
+    verticalCapsule2xUrl: image(assets.vertical_capsule_2x),
+    communityIconUrl: image(assets.community_icon),
+    pageBackgroundUrl: image(assets.page_background),
+    rawPageBackgroundUrl: image(assets.raw_page_background),
+    pageBackgroundPath: safePageBackgroundPath,
+    lastModifiedAt: timestamp(assets.last_modified),
+  };
+}
+
+function screenshotRecords(value, format, id, success) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 1000).filter(object).map(row => {
+    const filename = text(row.filename, 512);
+    const url = success === 1 ? resolveAssetUrl(format, id, filename) : null;
+    return url ? { ordinal: integer(row.ordinal), filename, url } : null;
+  }).filter(Boolean);
+}
+
 function storeMetadata(raw, expectedIds) {
   const rows = raw?.response?.store_items;
   if (!Array.isArray(rows)) throw new ProviderError('invalid-assets-response', 'assets');
@@ -83,8 +138,6 @@ function storeMetadata(raw, expectedIds) {
   for (const row of rows) {
     const id = appId(row?.appid);
     if (!expected.has(id) || output.has(id)) throw new ProviderError('invalid-asset-record', 'assets');
-    const format = row?.assets?.asset_url_format;
-    const image = filename => row.success === 1 ? assetFileUrl(format, id, filename) : null;
     const assets = object(row.assets) ? row.assets : {};
     const path = text(row.store_url_path, 1024);
     const pathParts = path?.split('/').filter(Boolean) || [];
@@ -101,12 +154,13 @@ function storeMetadata(raw, expectedIds) {
     const platforms = object(row.platforms) ? row.platforms : {};
     const basic = object(row.basic_info) ? row.basic_info : {};
     const release = object(row.release) ? row.release : {};
-    const libraryCapsuleUrl = image(assets.library_capsule_2x) || image(assets.library_capsule);
+    const artwork = artworkRecord(assets, id, row.success);
     output.set(id, {
       visible: boolean(row.visible),
       itemType: integer(row.item_type),
       type: integer(row.type),
       isFree: boolean(row.is_free),
+      unlisted: boolean(row.unlisted),
       urlPath: safePath,
       urlSlug: text(row.store_url_slug, 512),
       url: safePath ? new URL(safePath, 'https://store.steampowered.com/').toString() : null,
@@ -125,6 +179,8 @@ function storeMetadata(raw, expectedIds) {
         selectedLanguage: reviewSummary(row.reviews?.summary_language_specific),
       },
       releaseAt: timestamp(release.steam_release_date),
+      contentDescriptorIds: Array.isArray(row.content_descriptorids)
+        ? row.content_descriptorids.map(value => integer(value, 0, 0xffffffff)).filter(value => value !== null) : [],
       platforms: {
         windows: boolean(platforms.windows),
         mac: boolean(platforms.mac),
@@ -141,26 +197,12 @@ function storeMetadata(raw, expectedIds) {
           windowsMixedReality: boolean(platforms.vr_support.windows_mixed_reality),
         } : null,
       },
-      artwork: {
-        libraryCapsuleUrl,
-        libraryCapsule1xUrl: image(assets.library_capsule),
-        libraryCapsule2xUrl: image(assets.library_capsule_2x),
-        mainCapsuleUrl: image(assets.main_capsule),
-        smallCapsuleUrl: image(assets.small_capsule),
-        headerUrl: image(assets.header),
-        packageHeaderUrl: image(assets.package_header),
-        heroCapsuleUrl: image(assets.hero_capsule),
-        heroCapsule2xUrl: image(assets.hero_capsule_2x),
-        libraryHeroUrl: image(assets.library_hero),
-        libraryHero2xUrl: image(assets.library_hero_2x),
-        libraryHeaderUrl: image(assets.library_header),
-        libraryLogoUrl: image(assets.library_logo),
-        libraryLogo2xUrl: image(assets.library_logo_2x),
-        verticalCapsuleUrl: image(assets.vertical_capsule),
-        verticalCapsule2xUrl: image(assets.vertical_capsule_2x),
-        communityIconUrl: image(assets.community_icon),
-        pageBackgroundUrl: image(assets.page_background),
-        lastModifiedAt: timestamp(assets.asset_time_created),
+      artwork,
+      originalArtwork: object(row.assets_without_overrides)
+        ? artworkRecord(row.assets_without_overrides, id, row.success) : null,
+      screenshots: {
+        allAges: screenshotRecords(row.screenshots?.all_ages_screenshots, assets.asset_url_format, id, row.success),
+        matureContent: screenshotRecords(row.screenshots?.mature_content_screenshots, assets.asset_url_format, id, row.success),
       },
     });
   }

@@ -62,12 +62,16 @@ function createClient({ apiKey, fetchImpl = global.fetch, now = Date.now, reques
       throw new ProviderError('invalid-asset-request', 'assets');
     }
     const storeItems = [];
-    for (let offset = 0; offset < appIds.length; offset += 50) {
+    // Screenshot metadata can be much larger than catalog-only rows. Smaller
+    // batches keep each response inside the existing bounded-response limit.
+    for (let offset = 0; offset < appIds.length; offset += 20) {
       const input = {
-        ids: appIds.slice(offset, offset + 50).map(appid => ({ appid })),
+        ids: appIds.slice(offset, offset + 20).map(appid => ({ appid })),
         context: { language, country_code: 'US', steam_realm: 1 },
         data_request: {
           include_assets: true,
+          include_assets_without_overrides: true,
+          include_screenshots: true,
           include_release: true,
           include_platforms: true,
           include_reviews: true,
