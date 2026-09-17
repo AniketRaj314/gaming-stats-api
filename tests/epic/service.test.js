@@ -83,6 +83,17 @@ test('uses stale catalog metadata when refresh fails but never publishes an inco
   expect(service.read().coverage.catalogStale).toBe(true);
 });
 
+test('refreshes legacy catalog cache entries once to populate full artwork metadata', async () => {
+  await service.connect('code');
+  const source = n.inventory(f.records);
+  for (const item of source.items) {
+    store.catalog.set(item.key, { payload: { ...n.catalogEntry(item, f.rawCatalog.get(item.key)), schemaVersion: undefined }, refreshed: time });
+  }
+  await service.run();
+  expect(client.catalog).toHaveBeenCalledTimes(1);
+  expect(service.read().games[0].artwork.images[0]).toMatchObject({ width: 2560, height: 1440 });
+});
+
 test('renews once after an early access-token rejection and keeps the account bound', async () => {
   await service.connect('code');
   const { ProviderError } = require('../../src/shared/providerError');

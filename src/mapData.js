@@ -11,6 +11,11 @@ async function initMapData() {
       MAP_DATA[map.displayName] = {
         displayIcon: map.displayIcon,
         splash: map.splash,
+        listViewIcon: map.listViewIcon,
+        listViewIconTall: map.listViewIconTall,
+        backgroundImage: map.backgroundImage,
+        stylizedBackgroundImage: map.stylizedBackgroundImage,
+        premierBackgroundImage: map.premierBackgroundImage,
       };
     }
     log('STATIC', `Loaded data for ${Object.keys(MAP_DATA).length} maps`);

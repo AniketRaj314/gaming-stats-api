@@ -31,10 +31,10 @@ them.
 
 | Provider | Current source-data surface | Coverage review |
 | --- | --- | --- |
-| Steam | Profile/presence, all API-visible owned and free-subscription games, recent games, platform and Deck playtime, safe store/catalog metadata, current/original artwork and screenshots, badges/XP/community quests, achievements/schema/global rarity, title-defined stats, current players | Audited through 3.4.1 against the owner-key interface list and observed response shapes |
-| PSN | Played history, trophy summary, presence, trophy sets and trophies | Implemented; the next provider pass will audit the already-fetched profile response and every safe field in the current library/trophy/presence payloads |
-| Epic | Claimed PC base-game library, catalog artwork, playtime | Implemented; the detailed field audit will follow a successful owner reconnection so real catalog and account response shapes can be checked safely |
-| Valorant | Profile, rank, agent/map performance and total playtime | Implemented; review will use fixtures and documented schemas without consuming live Valorant runs |
+| Steam | Profile/presence, all API-visible owned and free-subscription games, recent games, platform and Deck playtime, safe store/catalog metadata, current/original artwork and screenshots, badges/XP/community quests, achievements/schema/global rarity, title-defined stats, current players | Artwork audited through 3.5.0 against the current owner response; all observed asset and screenshot fields are retained |
+| PSN | Played history with typed concept media, trophy summary, presence, trophy sets and trophies | Artwork audited through 3.5.0 against the current owner response; broader non-media field review remains open |
+| Epic | Claimed PC base-game library, complete safe typed catalog artwork metadata, playtime | Artwork audited through 3.5.0 against the current owner response; broader non-media catalog field review remains open |
+| Valorant | Profile/card art, rank icons, agent/map performance with official static artwork, and total playtime | Artwork audited through 3.5.0 from the public static-data schemas without a live player refresh |
 
 ## Steam 3.4.1 coverage
 
@@ -73,3 +73,24 @@ Steam interfaces intentionally not exposed are friends, groups/clans, bans,
 wishlists, followed games, shared-library lender identity, real name, exact
 location, and game-server addresses. Publisher-only write/admin methods and
 publisher-only global stats are also outside an owner user-key integration.
+
+## Artwork audit 3.5.0
+
+- **Steam:** the current 21-game owner response was checked against every
+  `assets`, `assets_without_overrides`, and screenshot key. The normalized
+  `store.artwork`, `store.originalArtwork`, and `store.screenshots` structures
+  already retain every observed image field.
+- **PSN:** 46 played records currently supply 406 distinct concept images:
+  cover art, logos, master art, background layers, hero characters, portrait,
+  4:3 and 16:9 banners, and screenshots. They are now returned under each
+  game's `artwork.images` as typed records. Duplicate record/concept copies are
+  collapsed by type, format, and URL.
+- **Epic:** 26 catalog records currently supply 62 safe key images. Each game's
+  `artwork.images` now retains the type, URL, alt text, width, height, byte size,
+  upload timestamp, and MD5 checksum when supplied. `imageUrl` and
+  `artwork.url` remain the preferred compatibility image.
+- **Valorant:** player cards already retained every image variant. Agent rows
+  now include small/display icons, portrait variants, bust, killfeed and minimap
+  portraits, background and promo art, plus role and ability icons. Map rows now
+  include list-view variants and standard, stylized, and Premier backgrounds in
+  addition to the existing display icon and splash.

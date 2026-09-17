@@ -80,7 +80,8 @@ function createService({ store, client, config, now = Date.now, report = () => {
   async function catalogFor(source, saved, ctx) {
     const keys = source.items.map(item => item.key);
     const cached = store.getCatalog(keys);
-    const due = source.items.filter(item => !cached.has(item.key) || now() - cached.get(item.key).refreshed >= config.catalogMs);
+    const due = source.items.filter(item => !cached.has(item.key) || cached.get(item.key).payload.schemaVersion !== 2 ||
+      now() - cached.get(item.key).refreshed >= config.catalogMs);
     let stale = false;
     if (due.length) {
       try {

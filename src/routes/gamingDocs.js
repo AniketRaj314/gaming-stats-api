@@ -7,7 +7,15 @@ const game = {
   providerGameId: 'PPSA12345_00', conceptId: '10001234', canonicalGameId: null,
   name: 'Example Game', platform: 'PS5', playtimeMinutes: 90.5, playCount: 3,
   firstPlayedAt: '2026-09-01T12:00:00.000Z', lastPlayedAt: '2026-09-16T12:00:00.000Z',
-  activityStatus: 'played-history', artwork: { url: null, width: null, height: null },
+  activityStatus: 'played-history', artwork: {
+    url: 'https://image.api.playstation.com/example/primary.png',
+    localizedUrl: 'https://image.api.playstation.com/example/localized.png',
+    width: null, height: null,
+    images: [
+      { type: 'GAMEHUB_COVER_ART', format: 'IMAGE', url: 'https://image.api.playstation.com/example/cover.png' },
+      { type: 'SCREENSHOT', format: 'IMAGE', url: 'https://image.api.playstation.com/example/screenshot.png' },
+    ],
+  },
 };
 const envelope = {
   schemaVersion: 1, provider: 'psn', accountRef: 'owner', status: 'ready', stale: false,
@@ -67,7 +75,15 @@ const epicEnvelope = {
   nextRefreshAt: '2026-09-17T12:15:00.000Z',
 };
 const epicGame = {
-  providerGameId: 'E'.repeat(43), name: 'Example Game', imageUrl: null,
+  providerGameId: 'E'.repeat(43), name: 'Example Game', imageUrl: 'https://cdn1.epicgames.com/example/wide.jpg',
+  artwork: { url: 'https://cdn1.epicgames.com/example/wide.jpg', images: [
+    { type: 'DieselGameBoxWide', url: 'https://cdn1.epicgames.com/example/wide.jpg', alt: 'Example landscape art',
+      width: 2560, height: 1440, sizeBytes: 123456, uploadedAt: '2026-09-01T12:00:00.000Z',
+      checksumMd5: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+    { type: 'DieselGameBoxTall', url: 'https://cdn1.epicgames.com/example/tall.jpg', alt: 'Example portrait art',
+      width: 1200, height: 1600, sizeBytes: 654321, uploadedAt: '2026-09-01T12:00:00.000Z',
+      checksumMd5: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' },
+  ] },
   playtimeMinutes: 90.5, playtimeStatus: 'known', lastPlayedAt: null,
 };
 
@@ -77,7 +93,7 @@ function psnSections() {
     { title: 'Authentication', text: 'Every data endpoint requires X-API-Key. Send it from your website server or backend proxy; never put it in browser JavaScript. Documentation is public. Missing or invalid keys return HTTP 401 with {"error":"Invalid or missing API key"}. Data responses use Cache-Control: private, no-store. No account selector, credential upload, disconnect, or refresh HTTP endpoint exists.' },
     { title: 'Requests', text: 'GET /psn/library — PS4/PS5 played history and totals\nGET /psn/summary — trophy level and grade counts\nGET /psn/presence — latest observed activity\nGET /psn/games/:titleId — a played record, related editions and trophy details\nUse providerGameId from the library as titleId, not conceptId or a trophy-set ID. No request body or pagination parameters are required: the library snapshot contains the fully fetched upstream result.' },
     { title: 'Request example', text: 'Set API_BASE_URL to your deployment origin, without /psn. PSN_API_KEY is an existing API_KEYS read key, not a Sony credential.', language: 'sh', code: 'curl --fail-with-body "$API_BASE_URL/psn/library" \\\n  -H "X-API-Key: $PSN_API_KEY"' },
-    { title: 'Library response', text: 'Fields absent from Sony become null where supported. playtimeMinutes keeps fractional minutes; zero is distinct from unknown. platform is PS4, PS5, or null for Sony\'s unknown category. Games are sorted by known playtime descending. conceptId groups related editions without merging them; canonicalGameId is currently null. coverage.complete means pagination completed for this history query, not a complete purchase inventory. Platforms describe the query filter. Totals sum records, not deduplicated lifetime hours across editions.', language: 'json', code: JSON.stringify({ ...envelope,
+    { title: 'Library response', text: 'Fields absent from Sony become null where supported. playtimeMinutes keeps fractional minutes; zero is distinct from unknown. platform is PS4, PS5, or null for Sony\'s unknown category. Games are sorted by known playtime descending. conceptId groups related editions without merging them; canonicalGameId is currently null. artwork.url is the compatibility image, localizedUrl is Sony\'s localized variant, and artwork.images preserves every safe typed cover, logo, master, background, hero, banner, portrait, and screenshot record. Duplicate record/concept media is collapsed by type, format, and URL. Sony does not supply dimensions here. coverage.complete means pagination completed for this history query, not a complete purchase inventory. Platforms describe the query filter. Totals sum records, not deduplicated lifetime hours across editions.', language: 'json', code: JSON.stringify({ ...envelope,
       coverage: { kind: 'played-history', platforms: ['PS4', 'PS5'], complete: true, purchaseLibrary: false },
       totals: { recordCount: 1, conceptCount: 1, knownRecordPlaytimeMinutes: 90.5, knownPlaytimeRecords: 1, unknownPlaytimeRecords: 0, unknownPlatformRecords: 0 }, games: [game],
     }, null, 2) },
@@ -143,7 +159,7 @@ function epicSections() {
     { title: 'Authentication', text: 'Every data endpoint requires X-API-Key from a trusted website server or backend proxy. Documentation is public. Missing or invalid read keys return HTTP 401. Data responses use Cache-Control: private, no-store. The read key cannot connect, refresh, disconnect, select an account, or retrieve credentials. Never put API_KEYS, Epic authorization codes, or session tokens in browser JavaScript.' },
     { title: 'Requests', text: 'GET /epic/library — complete cached owned base-game collection, coverage and totals\nGET /epic/games/:gameId — one cached owned game\nUse providerGameId from the library. It is an opaque 43-character identifier. No request body or pagination argument is accepted; the refresh worker completes upstream pagination before publication.' },
     { title: 'Request example', text: 'EPIC_API_KEY is one of this service\'s API_KEYS read keys, not an Epic credential.', language: 'sh', code: 'curl --fail-with-body "$API_BASE_URL/epic/library" \\\n  -H "X-API-Key: $EPIC_API_KEY"' },
-    { title: 'Library response', text: 'coverage.inventoryComplete and catalogComplete describe the published snapshot. Epic playtime is converted from integer seconds to minutes without early rounding. playtimeStatus is known, unknown, ambiguous, or unavailable. A missing Epic playtime record remains null/unknown; it never becomes zero. Explicit upstream zero remains known zero. Totals sum only known records and do not merge Steam, Playnite, PSN, editions, or aliases. Add-ons, private sandboxes, Unreal Engine assets, records without an app artifact, and unknown classifications are excluded and counted.', language: 'json', code: JSON.stringify({ ...epicEnvelope,
+    { title: 'Library response', text: 'coverage.inventoryComplete and catalogComplete describe the published snapshot. Epic playtime is converted from integer seconds to minutes without early rounding. playtimeStatus is known, unknown, ambiguous, or unavailable. A missing Epic playtime record remains null/unknown; it never becomes zero. Explicit upstream zero remains known zero. imageUrl and artwork.url retain the preferred compatibility image. artwork.images preserves every safe catalog key image with type, URL, alt text, dimensions, byte size, upload timestamp, and MD5 checksum when supplied. Totals sum only known records and do not merge Steam, Playnite, PSN, editions, or aliases. Add-ons, private sandboxes, Unreal Engine assets, records without an app artifact, and unknown classifications are excluded and counted.', language: 'json', code: JSON.stringify({ ...epicEnvelope,
       coverage: { kind: 'owned-pc-base-games', inventoryComplete: true, catalogComplete: true, catalogStale: false,
         playtimeStatus: 'available', missingPlaytimeMeans: 'unknown', unmatchedPlaytimeRecords: 0,
         excluded: { addons: 0, engineAssets: 0, unknownClassification: 0, privateRecords: 0, noAppArtifactRecords: 0 } },

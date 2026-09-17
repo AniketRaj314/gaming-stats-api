@@ -188,6 +188,22 @@ describe('agent enrichment', () => {
     expect(result.agents[0].icon).toBeNull();
     expect(result.agents[0].portrait).toBeNull();
     expect(result.agents[0].killfeedPortrait).toBeNull();
+    expect(result.agents[0].abilityIcons).toEqual([]);
+  });
+
+  test('substantial agent artwork and ability icons are attached', async () => {
+    AGENT_DATA['Jett'] = {
+      icon: 'icon.png', displayIconSmall: 'small.png', role: 'Duelist', roleIcon: 'role.png',
+      portrait: 'portrait.png', portraitV2: 'portrait-v2.png', bustPortrait: 'bust.png',
+      killfeedPortrait: 'killfeed.png', minimapPortrait: 'minimap.png', background: 'background.png',
+      homeScreenPromoTileImage: 'promo.png', abilityIcons: [{ slot: 'Ability1', name: 'Updraft', icon: 'ability.png' }],
+    };
+    fetchSpy.mockResolvedValue(makeOkResponse([{ agents: [{ agent: 'Jett', role: 'Duelist' }] }]));
+    expect((await scrapeStats('User#1', 'competitive', ['agents'])).agents[0]).toMatchObject({
+      displayIconSmall: 'small.png', roleIcon: 'role.png', portraitV2: 'portrait-v2.png', bustPortrait: 'bust.png',
+      minimapPortrait: 'minimap.png', background: 'background.png', homeScreenPromoTileImage: 'promo.png',
+      abilityIcons: [{ slot: 'Ability1', name: 'Updraft', icon: 'ability.png' }],
+    });
   });
 
   test('no error when agents absent from result', async () => {
@@ -233,6 +249,17 @@ describe('map enrichment', () => {
     const result = await scrapeStats('User#1', 'competitive', ['maps']);
     expect(result.maps[0].displayIcon).toBeNull();
     expect(result.maps[0].splash).toBeNull();
+  });
+
+  test('substantial map artwork variants are attached', async () => {
+    MAP_DATA['Ascent'] = { displayIcon: 'icon.png', splash: 'splash.png', listViewIcon: 'list.png',
+      listViewIconTall: 'list-tall.png', backgroundImage: 'background.png',
+      stylizedBackgroundImage: 'stylized.png', premierBackgroundImage: 'premier.png' };
+    fetchSpy.mockResolvedValue(makeOkResponse([{ maps: [{ map: 'Ascent', topAgents: [] }] }]));
+    expect((await scrapeStats('User#1', 'competitive', ['maps'])).maps[0]).toMatchObject({
+      listViewIcon: 'list.png', listViewIconTall: 'list-tall.png', backgroundImage: 'background.png',
+      stylizedBackgroundImage: 'stylized.png', premierBackgroundImage: 'premier.png',
+    });
   });
 
   test('topAgent fields set to null when agent not in AGENT_DATA', async () => {

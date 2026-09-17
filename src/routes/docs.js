@@ -134,6 +134,15 @@ Rules:
   }
 }
 
+Agent artwork fields:
+  icon, displayIconSmall, portrait, portraitV2, bustPortrait,
+  killfeedPortrait, minimapPortrait, background,
+  homeScreenPromoTileImage, roleIcon, abilityIcons[]
+
+Map artwork fields:
+  displayIcon, splash, listViewIcon, listViewIconTall, backgroundImage,
+  stylizedBackgroundImage, premierBackgroundImage
+
 ## Refresh model
 - default refresh interval: ${REFRESH_INTERVAL_HOURS} hours
 - built-in scheduler enabled: ${ENABLE_AUTO_REFRESH ? 'yes' : 'no'}
@@ -709,8 +718,16 @@ const data = await response.json();`,
         "hsPercent": "17.8%",
         "kast": "71.7%",
         "icon": "https://...",
+        "displayIconSmall": "https://...",
         "portrait": "https://...",
-        "killfeedPortrait": "https://..."
+        "portraitV2": "https://...",
+        "bustPortrait": "https://...",
+        "killfeedPortrait": "https://...",
+        "minimapPortrait": "https://...",
+        "background": "https://...",
+        "homeScreenPromoTileImage": "https://...",
+        "roleIcon": "https://...",
+        "abilityIcons": [{ "slot": "Ability1", "name": "Ability", "icon": "https://..." }]
       }
     ]
   }

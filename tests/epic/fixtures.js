@@ -16,7 +16,10 @@ const records = [
 ];
 const rawCatalog = new Map([
   ['alpha\0game-one', { title: 'Hogwarts Legacy', categories: [{ path: 'games' }], keyImages: [
-    { type: 'DieselGameBoxWide', url: 'https://cdn1.epicgames.com/offer/hogwarts-wide.jpg' },
+    { type: 'DieselGameBoxWide', url: 'https://cdn1.epicgames.com/offer/hogwarts-wide.jpg', alt: 'Hogwarts landscape',
+      width: 2560, height: 1440, size: 123456, uploadedDate: '2026-09-01T12:00:00Z', md5: 'A'.repeat(32) },
+    { type: 'DieselGameBoxTall', url: 'https://cdn1.epicgames.com/offer/hogwarts-tall.jpg', alt: 'Hogwarts portrait',
+      width: 1200, height: 1600, size: 654321, uploadedDate: '2026-09-02T12:00:00Z', md5: 'b'.repeat(32) },
   ] }],
   ['beta\0game-two', { title: 'Grand Theft Auto V', categories: [{ path: 'games/edition/base' }], keyImages: [] }],
   ['gamma\0game-three', { title: 'Unknown Time', categories: [{ path: 'games' }], keyImages: [] }],

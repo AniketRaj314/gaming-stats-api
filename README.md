@@ -2,9 +2,9 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.4.1** expands Steam's non-sensitive source-data and artwork coverage. The Epic
-integration remains behind a disabled deployment gate until the owner connection
-and live validation are complete. Steam and PSN remain live. See the
+Version **3.5.0** preserves the substantial artwork sets supplied by PSN, Epic,
+and Valorant while retaining the existing compatibility image fields. Steam's
+artwork surface was already complete for the observed owner responses. See the
 [release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
 the [PSN guide](docs/psn.md), and the [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
@@ -15,7 +15,7 @@ during frontend migration.
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
 | Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/badges`, `/steam/games/:appId` | Live; opt-in for other installations |
-| Epic | `/epic/library`, `/epic/games/:gameId` | Implemented; owner connection required; disabled by default |
+| Epic | `/epic/library`, `/epic/games/:gameId` | Live on the owner deployment; opt-in for other installations |
 
 Playnite is being evaluated as a source for local PC games; see the
 [feasibility notes](docs/playnite.md). No Playnite sync or ingestion route exists yet.
@@ -48,16 +48,16 @@ For request examples and API usage, open the built-in docs page after the server
 ## What You Get
 
 - Snapshot-backed API for tracked Riot IDs
-- Competitive and unrated agent/map stats
+- Competitive and unrated agent/map stats with official agent and map artwork variants
 - Player profile data: account level, region, player card, and title
 - Current and peak rank data
 - Total playtime across all modes
 - API key protection by default
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; encrypted SQLite sessions and cached snapshots for PSN and Epic
-- PSN played history, trophy summary, current presence, and per-game trophy details
+- PSN played history, typed concept artwork and screenshots, trophy summary, current presence, and per-game trophy details
 - Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata, current/original artwork and screenshots, recent playtime, badges/XP, achievements, rarity, title stats, and current players
-- Epic claimed base-game library, artwork, playtime, and automatic discovery of new claims
+- Epic claimed base-game library, complete typed catalog artwork metadata, playtime, and automatic discovery of new claims
 
 ## Requirements
 

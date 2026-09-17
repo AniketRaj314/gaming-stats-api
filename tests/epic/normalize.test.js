@@ -10,6 +10,15 @@ test('imports base games, filters add-ons/assets/private records, and preserves 
   const result = n.library({ inventory: source, catalog: normalizedCatalog(source), playtimeRaw: f.playtime, accountId: f.accountId });
   expect(result.games.map(game => game.name)).toEqual(['Hogwarts Legacy', 'Grand Theft Auto V', 'Unknown Time']);
   expect(result.games[0]).toMatchObject({ playtimeStatus: 'known', playtimeMinutes: 240212 / 60 });
+  expect(result.games[0].artwork).toEqual({
+    url: 'https://cdn1.epicgames.com/offer/hogwarts-wide.jpg',
+    images: [
+      { type: 'DieselGameBoxWide', url: 'https://cdn1.epicgames.com/offer/hogwarts-wide.jpg', alt: 'Hogwarts landscape',
+        width: 2560, height: 1440, sizeBytes: 123456, uploadedAt: '2026-09-01T12:00:00.000Z', checksumMd5: 'a'.repeat(32) },
+      { type: 'DieselGameBoxTall', url: 'https://cdn1.epicgames.com/offer/hogwarts-tall.jpg', alt: 'Hogwarts portrait',
+        width: 1200, height: 1600, sizeBytes: 654321, uploadedAt: '2026-09-02T12:00:00.000Z', checksumMd5: 'b'.repeat(32) },
+    ],
+  });
   expect(result.games[1]).toMatchObject({ playtimeStatus: 'known', playtimeMinutes: 0 });
   expect(result.games[2]).toMatchObject({ playtimeStatus: 'unknown', playtimeMinutes: null });
   expect(result.totals).toMatchObject({ gameCount: 3, playedGameCount: 1, knownPlaytimeGameCount: 2, unknownPlaytimeGameCount: 1 });
@@ -50,7 +59,10 @@ test('allows dotted identifiers, rejects path identifiers, foreign accounts, and
   const raw = structuredClone(f.rawCatalog.get('alpha\0game-one'));
   raw.keyImages[0].url = 'https://evil.test/private.jpg?token=secret';
   const catalog = new Map([[source.items[0].key, n.catalogEntry(source.items[0], raw)]]);
-  expect(n.library({ inventory: source, catalog, playtimeRaw: [], accountId: f.accountId }).games[0].imageUrl).toBeNull();
+  const game = n.library({ inventory: source, catalog, playtimeRaw: [], accountId: f.accountId }).games[0];
+  expect(game.imageUrl).toBe('https://cdn1.epicgames.com/offer/hogwarts-tall.jpg');
+  expect(game.artwork.images).toHaveLength(1);
+  expect(JSON.stringify(game)).not.toContain('evil.test');
 });
 
 test('marks all playtime unavailable without converting missing values to zero', () => {
