@@ -26,6 +26,7 @@ The implementation uses current official interfaces on
 - `IPlayerService/GetSteamLevel/v1`
 - `IPlayerService/GetOwnedGames/v1`
 - `IPlayerService/GetRecentlyPlayedGames/v1`
+- `IStoreBrowseService/GetItems/v1` with `include_assets` for batched cover metadata
 - `ISteamUserStats/GetSchemaForGame/v2`
 - `ISteamUserStats/GetPlayerAchievements/v1`
 - `ISteamUserStats/GetUserStatsForGame/v2`
@@ -174,8 +175,9 @@ return 200 while details are `pending`, `not-supported`, `private`, or
   privacy and Steam's ownership semantics still define coverage.
 - Recent activity uses Steam's two-week window and can be empty legitimately.
 - Every game record keeps Steam's small `iconUrl` and a separate `coverUrl` for
-  the full 600×900 library capsule. Published Steam apps are required to provide
-  that capsule; unpublished or removed apps may not serve the derived URL.
+  the full 600×900 library capsule. The provider resolves current content-hashed
+  paths from Steam StoreBrowse asset metadata; `coverUrl` is `null` when Steam
+  does not publish a capsule for that app.
 - `hasCommunityVisibleStats` controls background detail enrichment. Many games
   expose no achievements or stats through the Web API.
 - Locked hidden achievements conceal their name, description, and icon.

@@ -22,6 +22,14 @@ const games = [
 ];
 const library = { response: { game_count: games.length, games } };
 const recent = { response: { total_count: 1, games: [games[0]] } };
+const asset = (appid, filename = 'library_600x900_2x.jpg') => ({
+  appid, success: 1, assets: {
+    asset_url_format: `steam/apps/${appid}/\${FILENAME}?t=1700000000`,
+    library_capsule_2x: `${String(appid).padStart(40, '0')}/${filename}`,
+  },
+});
+const assets = { response: { store_items: games.map(game => asset(game.appid)) } };
+const recentAssets = { response: { store_items: [asset(games[0].appid)] } };
 const schema = { game: { gameName: 'Dota 2', availableGameStats: {
   achievements: [
     { name: 'FIRST', displayName: 'First Win', description: 'Win once', hidden: 0,
@@ -42,4 +50,5 @@ const globalAchievements = { achievementpercentages: { achievements: [
   { name: 'FIRST', percent: 12.5 }, { name: 'SECRET', percent: 0 },
 ] } };
 
-module.exports = { steamId, profile, level, games, library, recent, schema, achievements, stats, globalAchievements };
+module.exports = { steamId, profile, level, games, library, recent, asset, assets, recentAssets,
+  schema, achievements, stats, globalAchievements };
