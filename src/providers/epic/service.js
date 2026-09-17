@@ -70,7 +70,7 @@ function createService({ store, client, config, now = Date.now, report = () => {
       const issued = await client.connect(code, ctx);
       const verified = await client.verify(issued, ctx, issued.accountId);
       if (config.expectedDisplayName && verified.displayName.toLowerCase() !== config.expectedDisplayName.toLowerCase()) {
-        throw new ProviderError('account-mismatch', 'identity');
+        throw new ProviderError('unexpected-display-name', 'identity');
       }
       store.connect(verified);
       return { connected: true, displayName: verified.displayName };

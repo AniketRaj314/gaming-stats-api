@@ -128,11 +128,14 @@ function createClient({ fetchImpl = global.fetch, now = Date.now, requestMs = 10
       headers: { Authorization: `Bearer ${saved.accessToken}`, Accept: 'application/json' },
     }, ctx, 'identity');
     if (!raw || typeof raw !== 'object' || typeof raw.account_id !== 'string' ||
-      raw.account_id.toLowerCase() !== (expectedAccountId || saved.accountId) ||
-      typeof raw.displayName !== 'string' || raw.displayName.length > 64 || /[\r\n]/.test(raw.displayName)) {
+      raw.account_id.toLowerCase() !== (expectedAccountId || saved.accountId)) {
       throw new ProviderError('account-mismatch', 'identity');
     }
-    return { ...saved, accountId: raw.account_id.toLowerCase(), displayName: raw.displayName };
+    const displayName = raw.displayName === undefined ? saved.displayName : raw.displayName;
+    if (typeof displayName !== 'string' || displayName.length < 1 || displayName.length > 64 || /[\r\n]/.test(displayName)) {
+      throw new ProviderError('invalid-verify-response', 'identity');
+    }
+    return { ...saved, accountId: raw.account_id.toLowerCase(), displayName };
   }
 
   const authHeaders = saved => ({ Authorization: `Bearer ${saved.accessToken}`, Accept: 'application/json' });
