@@ -8,8 +8,9 @@
   generated class names.
 - Treat empty or incomplete Apify datasets as refresh failures so stale values
   stay explicitly stale and do not receive a false successful-refresh timestamp.
-- Confirm the live Tracker profile reports 2,103 hours; the cached API value
-  remains 2,018 hours until a successful post-fix refresh can run.
+- Confirm the live Tracker profile reports 2,103 hours and correct the production
+  playtime snapshot from that rendered value. Keep the overall Tracker snapshot
+  marked stale until a successful automated refresh updates every module.
 
 ## 3.5.0 — 2026-09-17
 
