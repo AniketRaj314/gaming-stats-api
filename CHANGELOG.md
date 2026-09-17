@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.0 — 2026-09-17
+
+- Add a full Steam library-capsule `coverUrl` to every normalized game record
+  while retaining the existing compact `iconUrl`.
+- Document the two distinct Steam image assets in the human and machine-readable
+  API guides.
+
 ## 3.2.1 — 2026-09-17
 
 - Preserve the display name from Epic's token response when the subsequent

@@ -49,7 +49,8 @@ test('Steam guides share endpoint contracts, setup, examples, and privacy semant
   for (const route of ['/steam/docs', '/steam/llms.txt']) {
     const res = await request(app).get(route);
     for (const text of ['/steam/profile', '/steam/library', '/steam/recent', '/steam/games/:appId',
-      'globalPercent', 'achievementStatus', 'statsStatus', 'STEAM_WEB_API_KEY', 'ENABLE_STEAM=false',
+      'globalPercent', 'achievementStatus', 'statsStatus', 'iconUrl', 'coverUrl', '600×900',
+      'STEAM_WEB_API_KEY', 'ENABLE_STEAM=false',
       'private, no-store', 'HTTP 401', 'HTTP 503']) expect(res.text).toContain(text);
   }
   const txt = (await request(app).get('/steam/llms.txt')).text;
