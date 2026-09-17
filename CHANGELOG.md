@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.1 — 2026-09-17
+
+- Resolve Steam library-capsule paths from batched StoreBrowse asset metadata so
+  newer content-hashed covers work; return `null` rather than a broken URL when
+  Steam publishes no capsule.
+
 ## 3.3.0 — 2026-09-17
 
 - Add a full Steam library-capsule `coverUrl` to every normalized game record

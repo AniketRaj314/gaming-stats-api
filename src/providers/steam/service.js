@@ -88,10 +88,16 @@ function createService({ store, client, config, now = Date.now, report = () => {
         payload = normalize.profile(profileResult.value, levelResult.status === 'fulfilled' ? levelResult.value : null, config.steamId);
       } else if (kind === 'library') {
         resource = 'library';
-        payload = normalize.library(await client.library(config.steamId, ctx));
+        const raw = await client.library(config.steamId, ctx);
+        const preview = normalize.library(raw);
+        const assets = await client.assets(preview.games.map(game => game.appId), config.language, ctx);
+        payload = normalize.library(raw, assets);
       } else if (kind === 'recent') {
         resource = 'recent';
-        payload = normalize.recent(await client.recent(config.steamId, ctx));
+        const raw = await client.recent(config.steamId, ctx);
+        const preview = normalize.recent(raw);
+        const assets = await client.assets(preview.games.map(game => game.appId), config.language, ctx);
+        payload = normalize.recent(raw, assets);
       } else if (kind === 'details') {
         const id = normalize.appId(requestedAppId);
         resource = `game:${id}`;

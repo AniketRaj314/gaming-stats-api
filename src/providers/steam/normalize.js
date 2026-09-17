@@ -36,11 +36,30 @@ function iconUrl(id, hash) {
     : null;
 }
 
-function coverUrl(id) {
-  return `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/library_600x900_2x.jpg`;
+function assetUrls(raw, expectedIds) {
+  const rows = raw?.response?.store_items;
+  if (!Array.isArray(rows)) throw new ProviderError('invalid-assets-response', 'assets');
+  const expected = new Set(expectedIds);
+  const output = new Map();
+  for (const row of rows) {
+    const id = appId(row?.appid);
+    if (!expected.has(id) || output.has(id)) throw new ProviderError('invalid-asset-record', 'assets');
+    let coverUrl = null;
+    const format = row?.assets?.asset_url_format;
+    const filename = row?.assets?.library_capsule_2x || row?.assets?.library_capsule;
+    const formatPattern = new RegExp(`^steam/apps/${id}/\\$\\{FILENAME\\}(?:\\?t=\\d{1,12})?$`);
+    const validFilename = typeof filename === 'string' && filename.length <= 512 && /^[A-Za-z0-9._/-]+$/.test(filename)
+      && filename.split('/').every(part => part && part !== '.' && part !== '..');
+    if (row.success === 1 && formatPattern.test(format) && validFilename) {
+      coverUrl = new URL(format.replace('${FILENAME}', filename),
+        'https://shared.fastly.steamstatic.com/store_item_assets/').toString();
+    }
+    output.set(id, coverUrl);
+  }
+  return output;
 }
 
-function game(raw) {
+function game(raw, covers = new Map()) {
   if (!object(raw)) throw new ProviderError('invalid-game-record', 'schema');
   const id = appId(raw.appid);
   const name = text(raw.name, 512);
@@ -56,26 +75,28 @@ function game(raw) {
     lastPlayedAt: timestamp(raw.rtime_last_played),
     hasCommunityVisibleStats: raw.has_community_visible_stats === true,
     iconUrl: iconUrl(id, raw.img_icon_url),
-    coverUrl: coverUrl(id),
+    coverUrl: covers.get(id) || null,
   };
 }
 
-function gamesResponse(raw, countField, stage) {
+function gamesResponse(raw, countField, stage, assetsRaw) {
   const response = raw?.response;
   if (!object(response) || !Number.isSafeInteger(response[countField]) || response[countField] < 0 || response[countField] > 100000) {
     throw new ProviderError('private-or-invalid-response', stage);
   }
   const rows = response.games === undefined && response[countField] === 0 ? [] : response.games;
   if (!Array.isArray(rows) || rows.length !== response[countField]) throw new ProviderError('invalid-game-count', 'schema');
-  const normalized = rows.map(game);
+  const ids = rows.map(row => appId(row?.appid));
+  const covers = assetsRaw ? assetUrls(assetsRaw, ids) : new Map();
+  const normalized = rows.map(row => game(row, covers));
   if (new Set(normalized.map(item => item.appId)).size !== normalized.length) throw new ProviderError('duplicate-game-record', 'schema');
   normalized.sort((a, b) => (b.playtimeTwoWeeksMinutes || 0) - (a.playtimeTwoWeeksMinutes || 0)
     || (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0) || a.name.localeCompare(b.name));
   return normalized;
 }
 
-function library(raw) {
-  const games = gamesResponse(raw, 'game_count', 'library');
+function library(raw, assetsRaw) {
+  const games = gamesResponse(raw, 'game_count', 'library', assetsRaw);
   const sum = key => games.reduce((total, item) => total + (item[key] || 0), 0);
   return {
     coverage: { kind: 'owned-games', complete: true, includePlayedFreeGames: true, privacyDependent: true },
@@ -93,8 +114,8 @@ function library(raw) {
   };
 }
 
-function recent(raw) {
-  const games = gamesResponse(raw, 'total_count', 'recent');
+function recent(raw, assetsRaw) {
+  const games = gamesResponse(raw, 'total_count', 'recent', assetsRaw);
   return {
     windowDays: 14,
     totals: {
@@ -216,4 +237,4 @@ function details({ schemaRaw, achievementsRaw, statsRaw, globalRaw, failures = {
   };
 }
 
-module.exports = { appId, game, library, recent, profile, details };
+module.exports = { appId, game, assetUrls, library, recent, profile, details };

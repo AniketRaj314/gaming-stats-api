@@ -20,6 +20,7 @@ beforeEach(() => {
     context: jest.fn(() => ({ signal: new AbortController().signal, remaining: 20 })),
     profile: jest.fn(async () => f.profile), level: jest.fn(async () => f.level),
     library: jest.fn(async () => f.library), recent: jest.fn(async () => f.recent),
+    assets: jest.fn(async ids => ids.length === 1 ? f.recentAssets : f.assets),
     schema: jest.fn(async () => f.schema), achievements: jest.fn(async () => f.achievements),
     stats: jest.fn(async () => f.stats), globalAchievements: jest.fn(async () => f.globalAchievements),
   };
@@ -33,6 +34,7 @@ test('refresh publishes profile, library, and recent snapshots independently', a
   ]);
   expect(service.read('profile')).toMatchObject({ status: 'ready', personaName: 'Fixture Player', steamLevel: 42 });
   expect(service.read('library')).toMatchObject({ status: 'ready', totals: { gameCount: 2, totalPlaytimeMinutes: 720 } });
+  expect(service.read('library').games[0].coverUrl).toContain('/library_600x900_2x.jpg');
   expect(service.read('recent')).toMatchObject({ status: 'ready', totals: { gameCount: 1, playtimeMinutes: 30 } });
 });
 
