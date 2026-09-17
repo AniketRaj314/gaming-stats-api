@@ -11,8 +11,17 @@ test('normalizes owned games and exact aggregate playtime without cross-store me
     iconUrl: `https://media.steampowered.com/steamcommunity/public/images/apps/570/${'a'.repeat(40)}.jpg`,
     coverUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/library_600x900_2x.jpg?t=1700000000',
     store: { isFree: true, shortDescription: 'Fixture description', developers: [{ name: 'Fixture Studio', creatorClanAccountId: 123 }],
+      unlisted: false, contentDescriptorIds: [2],
       platforms: { windows: true, linux: true, steamDeckCompatibilityCategory: 3 },
-      artwork: { headerUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/header.jpg?t=1700000000' } },
+      artwork: {
+        headerUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/header.jpg?t=1700000000',
+        header2xUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/header_2x.jpg?t=1700000000',
+        rawPageBackgroundUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/background_raw.jpg?t=1700000000',
+        pageBackgroundPath: 'app/570?t=1700000000', lastModifiedAt: '2023-11-14T22:13:20.000Z' },
+      originalArtwork: { libraryCapsuleUrl: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/original_library.jpg?t=1600000000' },
+      screenshots: { allAges: [{ ordinal: 0, filename: 'steam/apps/570/0000000000000000000000000000000000000570/ss_all.jpg?t=1700000000',
+        url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/570/0000000000000000000000000000000000000570/ss_all.jpg?t=1700000000' }],
+      matureContent: [{ ordinal: 1 }] } },
   });
   expect(result.totals).toMatchObject({ gameCount: 2, playedGameCount: 2, totalPlaytimeMinutes: 720, gamesWithCommunityStats: 1 });
   expect(result.coverage).toMatchObject({ kind: 'owned-games', includePlayedFreeGames: true, includeFreeSubscriptions: true, privacyDependent: true });

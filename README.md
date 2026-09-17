@@ -2,7 +2,7 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.4.0** expands Steam's non-sensitive source-data coverage. The Epic
+Version **3.4.1** expands Steam's non-sensitive source-data and artwork coverage. The Epic
 integration remains behind a disabled deployment gate until the owner connection
 and live validation are complete. Steam and PSN remain live. See the
 [release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
@@ -56,7 +56,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Optional built-in auto-refresh scheduler
 - File snapshots for Valorant; encrypted SQLite sessions and cached snapshots for PSN and Epic
 - PSN played history, trophy summary, current presence, and per-game trophy details
-- Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata and artwork, recent playtime, badges/XP, achievements, rarity, title stats, and current players
+- Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata, current/original artwork and screenshots, recent playtime, badges/XP, achievements, rarity, title stats, and current players
 - Epic claimed base-game library, artwork, playtime, and automatic discovery of new claims
 
 ## Requirements

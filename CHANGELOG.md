@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.1 — 2026-09-17
+
+- Complete Steam StoreBrowse artwork coverage with 2× header/main/small
+  capsules, raw page backgrounds, and the correct source modification time.
+- Preserve Steam's non-override artwork separately from temporary artwork and
+  expose ordered all-ages and mature-content screenshot lists.
+
 ## 3.4.0 — 2026-09-17
 
 - Expand the Steam library request to include free subscriptions, extended app

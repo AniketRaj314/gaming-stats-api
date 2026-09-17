@@ -30,8 +30,8 @@ The implementation uses current official interfaces on
 - `IPlayerService/GetRecentlyPlayedGames/v1`
 - `IPlayerService/GetBadges/v1`
 - `IPlayerService/GetCommunityBadgeProgress/v1` for Community badge ID 2
-- `IStoreBrowseService/GetItems/v1` with assets, release, platforms, reviews,
-  basic information, categories and tags
+- `IStoreBrowseService/GetItems/v1` with current/original assets, screenshots,
+  release, platforms, reviews, basic information, categories and tags
 - `ISteamUserStats/GetSchemaForGame/v2`
 - `ISteamUserStats/GetPlayerAchievements/v1`
 - `ISteamUserStats/GetUserStatsForGame/v2`
@@ -192,7 +192,12 @@ return 200 while details are `pending`, `not-supported`, `private`, or
 - `store` retains bounded StoreBrowse source facts: item type/visibility/free
   status, safe store URL, short description, developers/publishers/franchises,
   tags, categories, review summaries, release time, platform/compatibility facts,
-  and all recognized artwork variants. Missing variants remain `null`.
+  content descriptors, and catalog visibility.
+- `store.artwork` retains Steam's current community icon, page backgrounds, and
+  1×/2× small, main, header, hero, library-capsule and library-hero variants.
+  `store.originalArtwork` retains the non-override set when Steam is serving
+  temporary/seasonal artwork. `store.screenshots` keeps ordered all-ages and
+  mature-content lists separate. Missing variants remain `null` or empty arrays.
 - `avatarUrls` retains Steam's small, medium, and full avatar URLs. `avatarUrl`
   remains the best available size for compatibility.
 - Badges retain source XP values and completion facts without calculating a new
