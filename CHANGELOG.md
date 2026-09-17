@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.5.1 — 2026-09-17
+
+- Repair Valorant Tracker extraction after Tracker replaced the generated CSS
+  classes used by the agents, maps, and total-playtime pages.
+- Read those modules from stable rendered labels and value patterns instead of
+  generated class names.
+- Treat empty or incomplete Apify datasets as refresh failures so stale values
+  stay explicitly stale and do not receive a false successful-refresh timestamp.
+- Confirm the live Tracker profile reports 2,103 hours; the cached API value
+  remains 2,018 hours until a successful post-fix refresh can run.
+
 ## 3.5.0 — 2026-09-17
 
 - Preserve PSN concept cover art, logos, master art, backgrounds, hero art,
