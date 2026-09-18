@@ -56,7 +56,7 @@ test('normalizes public profile, presence, level, and safe URLs', () => {
   expect(n.profile(unsafe, f.level, f.steamId).avatarUrl).toBeNull();
 });
 
-test('joins achievements, schema, global rarity and game stats while hiding locked secrets', () => {
+test('normalizes Valve string percentages while joining achievements, rarity, and stats', () => {
   const result = n.details({ schemaRaw: f.schema, achievementsRaw: f.achievements, statsRaw: f.stats,
     globalRaw: f.globalAchievements, currentPlayersRaw: f.currentPlayers });
   expect(result).toMatchObject({ gameVersion: '42', currentPlayers: 12345, currentPlayersStatus: 'available',
@@ -66,6 +66,33 @@ test('joins achievements, schema, global rarity and game stats while hiding lock
   expect(result.achievements[0]).toMatchObject({ defaultValue: 0, unlockedIconUrl: expect.any(String), lockedIconUrl: expect.any(String) });
   expect(result.achievements[1]).toMatchObject({ apiName: 'SECRET', name: 'Hidden achievement', description: null,
     iconUrl: null, unlockedIconUrl: null, lockedIconUrl: null, achieved: false, globalPercent: 0 });
+});
+
+test.each([
+  ['40.6', 40.6],
+  [40.6, 40.6],
+  ['0', 0],
+  [100, 100],
+  ['', null],
+  [' 40.6 ', null],
+  ['not-a-number', null],
+  ['Infinity', null],
+  ['1e2', null],
+  [Number.NaN, null],
+  [Number.POSITIVE_INFINITY, null],
+  ['-0.1', null],
+  [-0.1, null],
+  ['100.1', null],
+  [100.1, null],
+])('accepts only finite in-range Steam percentages (%p)', (percent, expected) => {
+  const result = n.details({
+    schemaRaw: f.schema,
+    achievementsRaw: f.achievements,
+    globalRaw: { achievementpercentages: { achievements: [{ name: 'FIRST', percent }] } },
+  });
+
+  expect(result.achievements[0].globalPercent).toBe(expected);
+  expect(result.rarestUnlock?.globalPercent ?? null).toBe(expected);
 });
 
 test('normalizes badge, XP, and community quest source data', () => {

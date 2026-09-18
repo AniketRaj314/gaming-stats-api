@@ -6,6 +6,13 @@ const finite = value => typeof value === 'number' && Number.isFinite(value) ? va
 const integer = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(value) && value >= min && value <= max ? value : null;
 const boolean = value => typeof value === 'boolean' ? value : null;
 
+function percentage(value) {
+  const parsed = typeof value === 'number' ? value
+    : typeof value === 'string' && /^(?:\d+(?:\.\d+)?|\.\d+)$/.test(value) ? Number(value)
+      : null;
+  return typeof parsed === 'number' && Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
+}
+
 const avatarHosts = new Set([
   'avatars.akamai.steamstatic.com', 'avatars.fastly.steamstatic.com', 'avatars.cloudflare.steamstatic.com',
   'avatars.steamstatic.com', 'steamcdn-a.akamaihd.net',
@@ -410,7 +417,7 @@ function details({ schemaRaw, achievementsRaw, statsRaw, globalRaw, currentPlaye
       iconUrl: achieved ? unlockedIconUrl : lockedIconUrl,
       unlockedIconUrl,
       lockedIconUrl,
-      globalPercent: typeof percent === 'number' && Number.isFinite(percent) && percent >= 0 && percent <= 100 ? percent : null,
+      globalPercent: percentage(percent),
     };
   });
   const unlocked = achievements.filter(item => item.achieved === true);

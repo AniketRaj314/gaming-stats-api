@@ -206,8 +206,11 @@ return 200 while details are `pending`, `not-supported`, `private`, or
 - `hasCommunityVisibleStats` controls background detail enrichment. Many games
   expose no achievements or stats through the Web API.
 - Locked hidden achievements conceal their name, description, and icon.
-- `globalPercent=0` is known data. Rarest unlock compares only achievements that
-  are unlocked and have a known global percentage.
+- `globalPercent` is normalized to a number when Steam returns either a finite
+  number or a decimal string from 0 through 100. Malformed, non-finite, and
+  out-of-range values become `null`; zero remains known data. Rarest unlock
+  compares only achievements that are unlocked and have a known global
+  percentage.
 - Game stats are title-defined numeric values. The API retains their stable name,
   optional display name, schema default, and value without inventing units or meaning.
 - `currentPlayers` is Steam's online current-player observation and can be

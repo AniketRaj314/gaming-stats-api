@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.5.2 - 2026-09-18
+
+- Normalize Steam global achievement percentages from Valve's decimal-string
+  response shape as well as numeric values.
+- Reject malformed, non-finite, and out-of-range percentages so achievement
+  rarity remains explicit instead of using unsafe source values.
+- Refresh existing production Steam game-detail snapshots after deployment so
+  rarest unlocked achievements populate immediately.
+
 ## 3.5.1 — 2026-09-17
 
 - Repair Valorant Tracker extraction after Tracker replaced the generated CSS

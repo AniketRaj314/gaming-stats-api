@@ -80,7 +80,7 @@ const achievements = { playerstats: { steamID: steamId, gameName: 'Dota 2', succ
 ] } };
 const stats = { playerstats: { steamID: steamId, gameName: 'Dota 2', success: true, stats: [{ name: 'kills', value: 99 }] } };
 const globalAchievements = { achievementpercentages: { achievements: [
-  { name: 'FIRST', percent: 12.5 }, { name: 'SECRET', percent: 0 },
+  { name: 'FIRST', percent: '12.5' }, { name: 'SECRET', percent: '0' },
 ] } };
 const currentPlayers = { response: { player_count: 12345, result: 1 } };
 const badges = { response: { badges: [{ badgeid: 1, level: 2, completion_time: 1700000000, xp: 100, scarcity: 500 }],
