@@ -49,7 +49,7 @@ Use `games[].id` as the stable canonical key and route parameter. Each game cont
 - `copies`: independently tracked platform or storefront copies.
 - `observations`: the source records that produced the copy.
 - `playtime`: safely selected and deduplicated lifetime data.
-- `artwork`: a convenient selected icon, cover, and background.
+- `artwork`: selected portrait, landscape, square, and icon assets plus every retained source image.
 
 The frontend can choose one of these presentations:
 
@@ -81,17 +81,50 @@ The frontend must not add `observations` itself. Use the computed playtime field
 
 ## Artwork
 
-The aggregate `artwork` object is a convenient default:
+The aggregate artwork contract is role-based:
 
 ```ts
 type AggregateArtwork = {
+  portraitUrl: string | null;
+  landscapeUrl: string | null;
+  squareUrl: string | null;
   iconUrl: string | null;
-  coverUrl: string | null;
-  backgroundUrl: string | null;
+  all: Array<{
+    url: string;
+    provider: "steam" | "psn" | "epic" | "playnite";
+    providerGameId: string;
+    sourceRole: "authoritative" | "helper-mirror" | "presence-helper";
+    type: string;
+    roles: string[];
+    width: number | null;
+    height: number | null;
+    contentType: string | null;
+    metadata: Record<string, unknown>;
+    sources: Array<{
+      provider: string;
+      providerGameId: string;
+      sourceRole: string;
+      type: string;
+      metadata: Record<string, unknown>;
+    }>;
+  }>;
 };
 ```
 
-Playnite artwork paths are relative to the API origin and require the same `X-API-Key`. If the frontend needs alternate art, screenshots, logos, or exact source dimensions, read them from `copies[].observations[].data` or the raw provider route.
+Use the field that matches the component:
+
+- `landscapeUrl` for wide cards, heroes, and banners.
+- `portraitUrl` for poster cards.
+- `squareUrl` for square tiles and avatars when an actual square asset exists.
+- `iconUrl` for compact application icons.
+
+Do not read `coverUrl` or `backgroundUrl`; those generic fields are not part of the contract. Do not reinterpret portrait artwork as landscape artwork. A role can be null because providers do not guarantee every shape for every game.
+
+`all` contains every distinct safe image supplied by the contributing providers, including images not selected for the four primary roles. This includes alternate capsules, logos, backgrounds, character layers, and screenshots. Identical URLs appear once, with every contributing source listed under `sources`.
+
+Authoritative provider artwork wins over a helper mirror for the selected fields. An Epic game mirrored through Playnite therefore uses Epic landscape and portrait art while retaining the Playnite images in `all`. Local Playnite games use their Playnite artwork directly.
+
+Playnite artwork paths are relative to the API origin and require the same `X-API-Key`. Remote Steam, Epic, and PSN URLs are absolute.
 
 ## Suggested TypeScript shape
 
@@ -146,7 +179,8 @@ A missing ID returns HTTP 404. Provider game IDs are not valid substitutes for t
 
 1. Add a server-side client for `/aggregate/now-playing`.
 2. Replace provider-by-provider live checks with the returned `sessions` array.
-3. Add `/aggregate/library` for combined library views.
-4. Keep raw Steam, PSN, Epic, Playnite, and Valorant calls for specialized detail screens.
-5. Log `sources`, `possibleMatches`, and playtime selection rules during initial rollout so mapping gaps are visible.
-6. Report an unconfirmed match for backend curation instead of merging titles in frontend code.
+3. Use `artwork.landscapeUrl` for the existing wide game cards. Do not use `coverUrl` or `backgroundUrl`.
+4. Add `/aggregate/library` for combined library views.
+5. Keep raw Steam, PSN, Epic, Playnite, and Valorant calls for specialized detail screens.
+6. Log `sources`, `possibleMatches`, and playtime selection rules during initial rollout so mapping gaps are visible.
+7. Report an unconfirmed match for backend curation instead of merging titles in frontend code.

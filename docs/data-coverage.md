@@ -37,7 +37,7 @@ them.
 | Epic | Claimed PC base-game library, complete safe typed catalog artwork metadata, playtime | Artwork audited through 3.5.0 against the current owner response; broader non-media catalog field review remains open |
 | Valorant | Profile/card art, rank icons, agent/map performance with official static artwork, and total playtime | Artwork audited through 3.5.0 from the public static-data schemas without a live player refresh |
 | Playnite | Complete selected Playnite library, source identifiers, tracked playtime, launch count, install/activity state, catalog metadata, local icon/cover/background files, and short-lived now-playing presence | Implemented in 3.6.0 and verified against the first owner snapshots in 3.7.0 |
-| Aggregate | Canonical games, editions, independently played copies, playtime selection provenance, selected artwork, source freshness, and concurrent current sessions | Implemented and checked against the live owner snapshot shapes in 3.7.0 |
+| Aggregate | Canonical games, editions, independently played copies, playtime selection provenance, complete role-based artwork, source freshness, and concurrent current sessions | Implemented in 3.7.0 and artwork-audited against live owner snapshots in 3.7.1 |
 
 ## Aggregate 3.7.0 coverage
 
@@ -56,6 +56,15 @@ Confirmed cross-provider relationships are curated in
 `config/game-identities.json`. Unique Epic or Steam library records can absorb a
 Playnite helper record only when Playnite identifies that source and the title
 matches. Other exact normalized title matches remain separate suggestions.
+
+Aggregate artwork was expanded in 3.7.1. Every canonical game and copy now
+returns independently selected portrait, landscape, square, and icon URLs plus
+an `all` array containing every distinct safe image from every contributing
+observation. The array retains provider identity, provider type, semantic roles,
+dimensions, content type, source authority, provider metadata, and duplicate-URL
+provenance. Logos, backgrounds, character layers, screenshots, original Steam
+artwork, and Playnite helper assets remain available even when they are not a
+selected primary role.
 
 ## Playnite 3.6.0 coverage
 

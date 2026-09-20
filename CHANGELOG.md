@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.7.1 - 2026-09-20
+
+- Replace generic aggregate cover/background selection with explicit portrait,
+  landscape, square, and icon roles.
+- Retain every distinct safe source image in `artwork.all`, including alternate
+  capsules, logos, backgrounds, characters, and screenshots with provenance and
+  provider metadata.
+- Prefer authoritative provider art over Playnite helper mirrors while keeping
+  every helper image available.
+- Remove the new aggregate layer's ambiguous `coverUrl` and `backgroundUrl`
+  fields before frontend adoption.
+- Update the frontend handoff and public human and machine-readable docs for the
+  role-based artwork contract.
+
 ## 3.7.0 - 2026-09-20
 
 - Add `/aggregate/library`, `/aggregate/games/:canonicalGameId`, and

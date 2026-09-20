@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { buildRegistry } = require('./identities');
+const { selectArtwork } = require('./artwork');
 
 const READY = new Set(['ready', 'stale']);
 const ACTIVE = new Set(['ready']);
@@ -94,32 +95,6 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
       edition.copies.set(copyId, copy);
     }
     return { work, edition, copy };
-  }
-
-  function selectArtwork(observations) {
-    const selected = { iconUrl: null, coverUrl: null, backgroundUrl: null };
-    for (const item of observations) {
-      const game = item.data;
-      if (item.provider === 'playnite') {
-        selected.iconUrl ||= game.artwork?.icon?.path || null;
-        selected.coverUrl ||= game.artwork?.cover?.path || null;
-        selected.backgroundUrl ||= game.artwork?.background?.path || null;
-      }
-    }
-    for (const item of observations) {
-      const game = item.data;
-      if (item.provider === 'steam') {
-        selected.iconUrl ||= game.iconUrl || null;
-        selected.coverUrl ||= game.store?.artwork?.verticalCapsule2xUrl || game.store?.artwork?.libraryCapsule2xUrl || game.coverUrl || null;
-        selected.backgroundUrl ||= game.store?.artwork?.libraryHero2xUrl || game.store?.artwork?.pageBackgroundUrl || null;
-      } else if (item.provider === 'epic') {
-        selected.coverUrl ||= game.imageUrl || game.artwork?.url || null;
-      } else if (item.provider === 'psn') {
-        selected.coverUrl ||= game.artwork?.url || game.artwork?.localizedUrl || null;
-        selected.iconUrl ||= game.artwork?.url || null;
-      }
-    }
-    return selected;
   }
 
   function selectPlaytime(copy) {
@@ -291,7 +266,7 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
     const curated = registry.references.get(`${provider}:${id}`);
     return { id: curated?.workId || `${provider}-${String(id).toLowerCase()}`, name: curated?.workName || name,
       edition: curated ? { id: curated.editionId, name: curated.editionName } : { id: 'standard', name: 'Standard' },
-      artwork: { iconUrl: null, coverUrl: null, backgroundUrl: null } };
+      artwork: { portraitUrl: null, landscapeUrl: null, squareUrl: null, iconUrl: null, all: [] } };
   }
 
   function nowPlaying(input = snapshots()) {
