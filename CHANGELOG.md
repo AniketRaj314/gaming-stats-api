@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.7.0 - 2026-09-20
+
+- Add `/aggregate/library`, `/aggregate/games/:canonicalGameId`, and
+  `/aggregate/now-playing` as a read-only derived layer over cached providers.
+- Model canonical games, editions, independently played copies, and retained
+  provider observations without changing any raw provider route.
+- Deduplicate Steam platform components, Epic and Playnite mirrors, custom
+  Valorant and Playnite overlap, and regional PSN title records.
+- Support multiple simultaneous current sessions across devices, including a
+  Steam game and a different Playnite game at the same time.
+- Add a validated curated identity registry, unconfirmed exact-title match
+  suggestions, public human and machine-readable docs, and a frontend handoff.
+
 ## 3.6.0 - 2026-09-20
 
 - Add a Playnite provider with cached complete-library, per-game, artwork, and

@@ -3,7 +3,7 @@
 Gaming Stats API is a source-data service. Its provider layer should retain every
 useful, stable, non-sensitive fact returned by the supported upstream interfaces.
 Consumers can choose which fields to display. Computed insights belong in a
-separate, later layer and must not replace the source facts used to calculate
+separate aggregate layer and must not replace the source facts used to calculate
 them.
 
 ## Contract rules
@@ -11,7 +11,8 @@ them.
 - Preserve explicit zero, false, empty arrays, and unknown/null as different
   states.
 - Keep provider identifiers and provider-specific records separate. Cross-store
-  merging is a future derived-data concern.
+  relationships must be explicit in the aggregate layer and must retain source
+  observations.
 - Normalize field names, timestamps, URLs, and enumerations, but do not publish
   full upstream response blobs. Raw blobs are unstable contracts and can acquire
   sensitive fields without review.
@@ -35,7 +36,26 @@ them.
 | PSN | Played history with typed concept media, trophy summary, presence, trophy sets and trophies | Artwork audited through 3.5.0 against the current owner response; broader non-media field review remains open |
 | Epic | Claimed PC base-game library, complete safe typed catalog artwork metadata, playtime | Artwork audited through 3.5.0 against the current owner response; broader non-media catalog field review remains open |
 | Valorant | Profile/card art, rank icons, agent/map performance with official static artwork, and total playtime | Artwork audited through 3.5.0 from the public static-data schemas without a live player refresh |
-| Playnite | Complete selected Playnite library, source identifiers, tracked playtime, launch count, install/activity state, catalog metadata, local icon/cover/background files, and short-lived now-playing presence | Implemented in 3.6.0 against the Playnite SDK model; first owner snapshot verification remains pending |
+| Playnite | Complete selected Playnite library, source identifiers, tracked playtime, launch count, install/activity state, catalog metadata, local icon/cover/background files, and short-lived now-playing presence | Implemented in 3.6.0 and verified against the first owner snapshots in 3.7.0 |
+| Aggregate | Canonical games, editions, independently played copies, playtime selection provenance, selected artwork, source freshness, and concurrent current sessions | Implemented and checked against the live owner snapshot shapes in 3.7.0 |
+
+## Aggregate 3.7.0 coverage
+
+The aggregate layer reads sanitized cached provider records only. It retains the
+normalized source game object in every copy observation and exposes the rule,
+selected source, precision, and excluded overlaps for computed playtime.
+
+The current rules cover Steam operating-system components and overlapping Deck
+or disconnected totals, direct Epic records mirrored through Playnite, custom
+Valorant lifetime mirrored by Playnite sessions, regional PSN title records,
+independent platform/storefront copies, zero versus unknown values, partial
+provider availability, and stale presence. Now playing returns an array because
+the owner can play different games on different devices concurrently.
+
+Confirmed cross-provider relationships are curated in
+`config/game-identities.json`. Unique Epic or Steam library records can absorb a
+Playnite helper record only when Playnite identifies that source and the title
+matches. Other exact normalized title matches remain separate suggestions.
 
 ## Playnite 3.6.0 coverage
 

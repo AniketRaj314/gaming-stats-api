@@ -7,11 +7,16 @@ const { createPsnRouter } = require('./providers/psn/routes');
 const { createSteamRouter } = require('./providers/steam/routes');
 const { createEpicRouter } = require('./providers/epic/routes');
 const { createPlayniteRouter } = require('./providers/playnite/routes');
+const { createAggregateRouter } = require('./providers/aggregate/routes');
+const { createAggregateService } = require('./providers/aggregate');
 const { createGamingDocsRouter } = require('./routes/gamingDocs');
+const { readSnapshot } = require('./snapshotStore');
+const { TRACKED_USERNAMES } = require('./config');
 
 function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled', steamService = null,
   steamStatus = 'disabled', epicService = null, epicStatus = 'disabled', playniteService = null,
-  playniteStatus = 'disabled', playniteUploadKeys = [] } = {}) {
+  playniteStatus = 'disabled', playniteUploadKeys = [], aggregateService = null,
+  trackedUsernames = TRACKED_USERNAMES, readValorantSnapshot = readSnapshot } = {}) {
   const app = express();
   const auth = requireApiKey(validKeys);
   const playniteUploadAuth = requireHeaderKey(playniteUploadKeys, 'x-playnite-key', 'Invalid or missing Playnite upload key');
@@ -34,6 +39,9 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   app.use('/epic', auth, createEpicRouter({ service: epicService, unavailableStatus: epicStatus }));
   app.use('/playnite', createPlayniteRouter({ service: playniteService, readAuth: auth,
     uploadAuth: playniteUploadAuth, unavailableStatus: playniteStatus }));
+  const aggregate = aggregateService || createAggregateService({ steamService, steamStatus, psnService, psnStatus,
+    epicService, epicStatus, playniteService, playniteStatus, trackedUsernames, readValorantSnapshot });
+  app.use('/aggregate', auth, createAggregateRouter({ service: aggregate }));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
