@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "games": [
+    {
+      "id": "valorant",
+      "name": "VALORANT",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "valorant",
+              "id": "valorant",
+              "copy": "riot-account"
+            },
+            {
+              "provider": "playnite",
+              "id": "e14e27a4-50fe-4d86-9c44-03a57e9c4f65",
+              "copy": "riot-account"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marvels-spider-man",
+      "name": "Marvel's Spider-Man",
+      "editions": [
+        {
+          "id": "original",
+          "name": "Original",
+          "references": [
+            {
+              "provider": "psn",
+              "id": "CUSA02299_00",
+              "copy": "psn-ps4"
+            },
+            {
+              "provider": "psn",
+              "id": "CUSA11995_00",
+              "copy": "psn-ps4"
+            }
+          ]
+        },
+        {
+          "id": "remastered",
+          "name": "Remastered",
+          "references": [
+            {
+              "provider": "psn",
+              "id": "PPSA01468_00",
+              "copy": "psn-ps5"
+            },
+            {
+              "provider": "playnite",
+              "id": "ac04e6ec-3df3-4f10-bee3-5b7d7d5d238c",
+              "copy": "playnite-windows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aimlabs",
+      "name": "Aimlabs",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "steam",
+              "id": "714010",
+              "copy": "steam"
+            },
+            {
+              "provider": "epic",
+              "id": "ZzSOWkVW0Y_hVyb-DTiDqaDNqf9FtihpwcEw0XqzYEE",
+              "copy": "epic-windows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fragpunk",
+      "name": "FragPunk",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "steam",
+              "id": "2943650",
+              "copy": "steam"
+            },
+            {
+              "provider": "epic",
+              "id": "ELqCNPEwrBmIZNUU_FjrZuImiDcgUlHXYl2jVVshFM4",
+              "copy": "epic-windows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fortnite",
+      "name": "Fortnite",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "epic",
+              "id": "x-BkHNraQhmiwfj3hRJ2p2XKpHSnllL7FV7oXvf8yDI",
+              "copy": "epic-windows"
+            },
+            {
+              "provider": "psn",
+              "id": "CUSA07669_00",
+              "copy": "psn-ps4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rocket-league",
+      "name": "Rocket League",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "epic",
+              "id": "KMndzLWcMv9AIjE5U8sGqUsjN-RlfU7g8vv3iSLpXOg",
+              "copy": "epic-windows"
+            },
+            {
+              "provider": "psn",
+              "id": "CUSA01433_00",
+              "copy": "psn-ps4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brawlhalla",
+      "name": "Brawlhalla",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "steam",
+              "id": "291550",
+              "copy": "steam"
+            },
+            {
+              "provider": "psn",
+              "id": "CUSA05330_00",
+              "copy": "psn-ps4"
+            },
+            {
+              "provider": "psn",
+              "id": "CUSA04195_00",
+              "copy": "psn-ps4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "human-fall-flat",
+      "name": "Human Fall Flat",
+      "editions": [
+        {
+          "id": "standard",
+          "name": "Standard",
+          "references": [
+            {
+              "provider": "steam",
+              "id": "477160",
+              "copy": "steam"
+            },
+            {
+              "provider": "psn",
+              "id": "PPSA02429_00",
+              "copy": "psn-ps5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

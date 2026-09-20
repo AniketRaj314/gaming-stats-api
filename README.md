@@ -2,16 +2,17 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.6.0** adds secure Playnite library, artwork, playtime, and
-now-playing sync from a Windows gaming PC. It also includes the Steam rarity,
-Tracker extraction, and artwork coverage improvements from 3.5.x. See the
-[release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
-the [PSN guide](docs/psn.md), and the [data coverage policy](docs/data-coverage.md). Valorant uses
+Version **3.7.0** adds a frontend-ready aggregate library and multi-session
+now-playing API over the cached provider snapshots. It preserves raw provider
+records while resolving confirmed game identity and overlapping playtime. See
+the [aggregate guide](docs/aggregate.md), [frontend handoff](docs/frontend-aggregate-handoff.md),
+[release notes](CHANGELOG.md), and [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
 during frontend migration.
 
 | Provider | Routes | Status |
 | --- | --- | --- |
+| Aggregate | `/aggregate/library`, `/aggregate/games/:canonicalGameId`, `/aggregate/now-playing` | Derived from cached providers |
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
 | Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/badges`, `/steam/games/:appId` | Live; opt-in for other installations |
@@ -26,7 +27,8 @@ separate setup, storage, and refresh jobs. See the [frontend migration guide](do
 for the Valorant base URL change. The shared service health endpoint is `GET /health`.
 
 Public documentation is available at `/docs` and `/llms.txt` for the provider
-index, `/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
+index, `/aggregate/docs` and `/aggregate/llms.txt` for aggregation,
+`/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
 `/custom/valorant/llms.txt` for Valorant. Steam documentation is at `/steam/docs`
 and `/steam/llms.txt`; Epic documentation is at `/epic/docs` and
 `/epic/llms.txt`; Playnite documentation is at `/playnite/docs` and
@@ -61,6 +63,8 @@ For request examples and API usage, open the built-in docs page after the server
 - Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata, current/original artwork and screenshots, recent playtime, badges/XP, achievements, rarity, title stats, and current players
 - Epic claimed base-game library, complete typed catalog artwork metadata, playtime, and automatic discovery of new claims
 - Playnite local and launcher-linked games, local artwork, installed state, tracked playtime, launch count, and expiring now-playing presence
+- Canonical cross-provider games with edition/copy breakdowns and explicit playtime selection rules
+- Multiple simultaneous now-playing sessions across Steam, PSN, and Playnite
 
 ## Requirements
 
@@ -186,7 +190,7 @@ and generate a fresh value before reconnecting.
 | `APIFY_TOKEN` | Yes | Apify token used for tracker.gg scraping runs |
 | `APIFY_MEMORY_MB` | No | Memory assigned to each Apify actor run. Defaults to `2048` |
 | `HENRIK_API_KEY` | Yes for `refresh:profiles` | HenrikDev API key used for account profile data |
-| `API_KEYS` | Yes | Comma-separated read keys accepted by Valorant, PSN, Steam, and Epic data routes; documentation stays public |
+| `API_KEYS` | Yes | Comma-separated read keys accepted by aggregate and all provider data routes; documentation stays public |
 | `TRACKED_USERNAMES` | Yes for Valorant | Comma-separated Riot IDs to support in this API |
 | `PORT` | No | Port the server listens on. Defaults to `3000` |
 | `ENABLE_AUTO_REFRESH` | No | Set to `true` to enable the built-in scheduler |
@@ -218,6 +222,7 @@ and generate a fresh value before reconnecting.
 | `PLAYNITE_UPLOAD_KEYS` | Yes for Playnite | Comma-separated upload keys, each 32–512 characters; keep separate from read keys |
 | `PLAYNITE_LIBRARY_STALE_HOURS` | No | Playnite library stale threshold. Defaults to `24`; allowed `1–720` |
 | `PLAYNITE_PRESENCE_TTL_SECONDS` | No | Time without a heartbeat before presence becomes offline. Defaults to `180`; allowed `30–900` |
+| `AGGREGATE_IDENTITIES_FILE` | No | Optional path to a schema-version-1 curated identity registry. Defaults to `config/game-identities.json` |
 
 ## Steam Setup
 

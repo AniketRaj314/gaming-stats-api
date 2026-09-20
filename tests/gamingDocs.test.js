@@ -7,7 +7,7 @@ test('public provider docs require no credentials or snapshot/upstream access', 
   const service = { read: jest.fn(() => { throw new Error('No snapshot access allowed'); }), game: jest.fn() };
   try {
     const app = createApp({ validKeys: ['test-read-key'], psnService: service });
-    for (const route of ['/', '/docs', '/llms.txt', '/psn', '/psn/', '/psn/docs', '/psn/llms.txt', '/steam', '/steam/docs', '/steam/llms.txt', '/epic', '/epic/docs', '/epic/llms.txt', '/playnite', '/playnite/docs', '/playnite/llms.txt']) {
+    for (const route of ['/', '/docs', '/llms.txt', '/aggregate', '/aggregate/docs', '/aggregate/llms.txt', '/psn', '/psn/', '/psn/docs', '/psn/llms.txt', '/steam', '/steam/docs', '/steam/llms.txt', '/epic', '/epic/docs', '/epic/llms.txt', '/playnite', '/playnite/docs', '/playnite/llms.txt']) {
       const res = await request(app).get(route);
       expect(res.status).toBe(200);
       expect(res.text).toContain(version);
@@ -26,10 +26,28 @@ test('public provider docs require no credentials or snapshot/upstream access', 
     for (const route of ['/playnite/library', '/playnite/presence', '/playnite/games/a85aec7d-447d-4c0c-9506-f8b27c2ad310', '/playnite/assets/' + 'a'.repeat(64)]) {
       expect((await request(app).get(route)).status).toBe(401);
     }
+    for (const route of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/example-game']) {
+      expect((await request(app).get(route)).status).toBe(401);
+    }
     expect(service.read).not.toHaveBeenCalled();
     expect(service.game).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   } finally { fetchMock.mockRestore(); }
+});
+
+test('Aggregate guides cover identity, overlap, concurrent sessions, and frontend behavior', async () => {
+  const app = createApp();
+  for (const route of ['/aggregate/docs', '/aggregate/llms.txt']) {
+    const res = await request(app).get(route);
+    for (const text of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/:canonicalGameId',
+      'sessions', 'primarySource', 'detectedBy', 'possibleMatches', 'unknown', 'Regional',
+      'config/game-identities.json', 'HTTP 401', 'HTTP 503']) expect(res.text).toContain(text);
+  }
+  const txt = (await request(app).get('/aggregate/llms.txt')).text;
+  const examples = [...txt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]));
+  expect(examples).toHaveLength(1);
+  expect(examples[0]).toMatchObject({ schemaVersion: 1, provider: 'aggregate', state: 'playing', sessionCount: 2 });
+  expect((await request(app).get('/llms.txt')).text).toContain('(/aggregate/llms.txt)');
 });
 
 test('Playnite guides cover read, sync, presence, artwork, and security contracts', async () => {

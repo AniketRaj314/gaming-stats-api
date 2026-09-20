@@ -220,6 +220,37 @@ function playniteSections() {
   ];
 }
 
+function aggregateSections() {
+  const source = { status: 'ready', stale: false, lastSuccessAt: '2026-09-20T12:29:30.000Z' };
+  const artwork = { iconUrl: null, coverUrl: null, backgroundUrl: null };
+  const currentGame = { id: 'valorant', name: 'VALORANT', edition: { id: 'standard', name: 'Standard' }, artwork };
+  return [
+    { title: 'Overview', text: 'Base path: /aggregate\nRead a frontend-ready library and all current play sessions assembled from cached Steam, PSN, Epic, Playnite, and custom Valorant data. Aggregate requests never call providers or trigger refreshes. Raw provider routes remain available when the frontend needs provider-specific fields.' },
+    { title: 'Authentication', text: 'Every aggregate data endpoint requires the same X-API-Key as the provider routes. Send it from a trusted backend and never expose it in browser JavaScript. Documentation is public. Responses use Cache-Control: private, no-store.' },
+    { title: 'Requests', text: 'GET /aggregate/library - canonical games, editions, platform or storefront copies, source observations, selected artwork, and safely deduplicated playtime\nGET /aggregate/games/:canonicalGameId - one canonical game from the current aggregate library\nGET /aggregate/now-playing - zero or more concurrent current sessions\nNo request accepts a body or refreshes an upstream provider.' },
+    { title: 'Now playing response', text: 'sessions is always an array because different devices can run different games at the same time. Steam on macOS and Playnite on Windows therefore remain separate sessions. Provider priority is applied only when two observations describe the same session. A direct Steam observation wins over a Playnite Steam helper, while Playnite remains in detectedBy as confirmation. Stale observations never create sessions. Steam does not reliably identify the current operating system, so its platform can be unknown. state is playing, online, offline, or unknown.', language: 'json', code: JSON.stringify({
+      schemaVersion: 1, provider: 'aggregate', accountRef: 'owner', generatedAt: '2026-09-20T12:30:00.000Z',
+      state: 'playing', sessionCount: 2, sessions: [
+        { id: 'steam:3628960', game: { id: 'steam-3628960', name: 'Miscrits: World of Creatures',
+          edition: { id: 'standard', name: 'Standard' }, artwork }, platform: 'unknown', device: null,
+          startedAt: null, observedAt: '2026-09-20T12:29:30.000Z', primarySource: 'steam',
+          detectedBy: [{ source: 'steam', providerGameId: '3628960', observedAt: '2026-09-20T12:29:30.000Z',
+            startedAt: null, platform: 'unknown', device: null }], confidence: 'single-source' },
+        { id: 'playnite:e14e27a4-50fe-4d86-9c44-03a57e9c4f65', game: currentGame, platform: 'windows',
+          device: { id: 'playnite-device-id', name: 'Gaming PC' }, startedAt: '2026-09-20T11:36:28.168Z',
+          observedAt: '2026-09-20T12:29:30.000Z', primarySource: 'playnite',
+          detectedBy: [{ source: 'playnite', providerGameId: 'e14e27a4-50fe-4d86-9c44-03a57e9c4f65',
+            observedAt: '2026-09-20T12:29:30.000Z', startedAt: '2026-09-20T11:36:28.168Z', platform: 'windows',
+            device: { id: 'playnite-device-id', name: 'Gaming PC' } }], confidence: 'single-source' },
+      ], sources: { steam: source, psn: source, playnite: source },
+    }, null, 2) },
+    { title: 'Library model', text: 'games are canonical works. Each work contains editions, each edition contains independently played copies, and each copy contains its raw normalized provider observations. The frontend may show one work card, edition cards, or individual platform cards. Curated mappings in config/game-identities.json confirm cross-provider identity. Exact title matches that are not confirmed remain separate and appear in possibleMatches.' },
+    { title: 'Playtime rules', text: 'A copy selects one authoritative lifetime instead of adding overlapping observations. Steam lifetime already includes its Windows, macOS, and Linux components. Deck and disconnected values overlap that lifetime. Direct Epic playtime wins over its Playnite mirror; a positive Playnite value is a fallback when Epic is unknown, while zero does not turn unknown into zero. Custom Valorant lifetime wins over the Playnite subset. Regional PSN IDs grouped into one copy use the largest value rather than a sum. Independent platform and storefront copies can be added at edition and work levels. Every choice is exposed through rule, selectedFrom, and excluded.' },
+    { title: 'Freshness and errors', text: 'The library returns HTTP 200 when at least one provider is usable and status is ready or partial. HTTP 503 means every source is unavailable. Now playing returns HTTP 200 for playing, online, or offline and HTTP 503 for unknown when no fresh presence source exists. HTTP 401 means a missing or invalid read key. A canonical game lookup returns HTTP 404 when its ID is absent. sources always carries provider freshness so the frontend can explain partial results.' },
+    { title: 'Frontend guidance', text: 'For live activity, render every entry in sessions. Do not choose one global winner. Use primarySource for the label and detectedBy for optional attribution. For the library, use the canonical game id for routes and UI state. Treat playtime.status unknown as missing data, not zero. Display work or edition totals only when the product wants a combined view, and keep copy breakdowns available. A complete implementation handoff is linked from the repository documentation.' },
+  ];
+}
+
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 function markdown(title, sections) {
   return `# ${title}\n\nVersion: ${version}\n\n` + sections.map(s => `## ${s.title}\n\n${s.text}${s.code ? `\n\n\`\`\`${s.language || ''}\n${s.code}\n\`\`\`` : ''}`).join('\n\n') + '\n';
@@ -236,15 +267,21 @@ function createGamingDocsRouter() {
   const steamSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/steam.md';
   const epicSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/epic.md';
   const playniteSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/playnite.md';
+  const aggregateGuide = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/aggregate.md';
+  const frontendHandoff = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/frontend-aggregate-handoff.md';
   const coverage = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/data-coverage.md';
   const indexSections = [
-    { title: 'Providers', text: 'Valorant: /custom/valorant - cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn - cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam - cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic - cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite: /playnite - cached local/launcher library, artwork, tracked playtime, and expiring now-playing presence from the Windows extension.' },
-    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Playnite guide](/playnite/docs)\n[Playnite machine-readable guide](/playnite/llms.txt)\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')\n[Playnite setup](' + playniteSetup + ')' },
-    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, Steam, Epic, and Playnite data require X-API-Key from a server-side consumer. The Playnite Windows extension has a separate upload-only key. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
+    { title: 'Providers', text: 'Aggregate: /aggregate - canonical games, safely deduplicated playtime, and concurrent now-playing sessions assembled from cached providers.\nValorant: /custom/valorant - cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn - cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam - cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic - cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite: /playnite - cached local/launcher library, artwork, tracked playtime, and expiring now-playing presence from the Windows extension.' },
+    { title: 'Documentation', text: '[Aggregate guide](/aggregate/docs)\n[Aggregate machine-readable guide](/aggregate/llms.txt)\n[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Playnite guide](/playnite/docs)\n[Playnite machine-readable guide](/playnite/llms.txt)\n[Aggregate implementation guide](' + aggregateGuide + ')\n[Frontend aggregate handoff](' + frontendHandoff + ')\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')\n[Playnite setup](' + playniteSetup + ')' },
+    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Aggregate, Valorant, PSN, Steam, Epic, and Playnite data require X-API-Key from a server-side consumer. The Playnite Windows extension has a separate upload-only key. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
   ];
   router.get('/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API', indexSections)));
   router.get(['/', '/docs'], (req,res)=>res.type('html').send(html('Gaming Stats API', indexSections.filter(s=>s.title!=='Documentation'), [
-    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['Playnite docs','/playnite/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['PSN setup',setup],['Steam setup',steamSetup],['Epic setup',epicSetup],['Playnite setup',playniteSetup],
+    ['Aggregate docs','/aggregate/docs'],['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['Playnite docs','/playnite/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['Frontend handoff',frontendHandoff],
+  ])));
+  router.get('/aggregate/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API: Aggregate', aggregateSections())));
+  router.get(['/aggregate','/aggregate/docs'], (req,res)=>res.type('html').send(html('Aggregate API', aggregateSections(), [
+    ['All providers','/docs'],['llms.txt','/aggregate/llms.txt'],['Implementation guide',aggregateGuide],['Frontend handoff',frontendHandoff],
   ])));
   router.get('/psn/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — PSN', psnSections())));
   router.get(['/psn','/psn/docs'], (req,res)=>res.type('html').send(html('PSN API', psnSections(), [
