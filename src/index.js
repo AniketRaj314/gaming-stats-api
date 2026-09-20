@@ -55,8 +55,23 @@ if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_EPIC || '')) {
     log('EPIC', safeError(error));
   }
 }
+let playniteService = null;
+let playniteStatus = 'disabled';
+let playniteUploadKeys = [];
+if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_PLAYNITE || '')) {
+  try {
+    const { createPlayniteProvider } = require('./providers/playnite');
+    const provider = createPlayniteProvider();
+    playniteService = provider.service;
+    playniteUploadKeys = provider.settings.uploadKeys;
+  } catch (error) {
+    const { safeError } = require('./shared/providerError');
+    playniteStatus = 'unavailable';
+    log('PLAYNITE', safeError(error));
+  }
+}
 const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus,
-  steamService, steamStatus, epicService, epicStatus });
+  steamService, steamStatus, epicService, epicStatus, playniteService, playniteStatus, playniteUploadKeys });
 
 (async () => {
   log(

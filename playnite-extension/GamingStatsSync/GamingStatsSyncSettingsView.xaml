@@ -1,0 +1,16 @@
+<UserControl x:Class="GamingStatsSync.GamingStatsSyncSettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel Margin="12">
+    <TextBlock Text="Gaming Stats API URL" FontWeight="SemiBold" />
+    <TextBox Text="{Binding EndpointUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,14" />
+    <TextBlock Text="Device name" FontWeight="SemiBold" />
+    <TextBox Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,14" />
+    <TextBlock Text="Playnite upload key" FontWeight="SemiBold" />
+    <PasswordBox x:Name="UploadKeyBox" PasswordChanged="UploadKeyBox_OnPasswordChanged" Margin="0,5,0,6" />
+    <TextBlock Text="The key is encrypted for your current Windows account. It is separate from website read keys and store credentials."
+               TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,14" />
+    <CheckBox Content="Upload cover, icon, and background artwork" IsChecked="{Binding SyncArtwork}" Margin="0,0,0,8" />
+    <CheckBox Content="Include games hidden in Playnite" IsChecked="{Binding IncludeHiddenGames}" />
+  </StackPanel>
+</UserControl>

@@ -7,3 +7,7 @@ coverage/
 !.env.example
 *.sqlite*
 *.key
+playnite-extension/**/bin/
+playnite-extension/**/obj/
+playnite-extension/package/
+playnite-extension/*.pext

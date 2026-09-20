@@ -1,0 +1,9 @@
+Id: GamingStatsSync_AniketRaj
+Name: Gaming Stats Sync
+Author: Aniket Raj
+Version: 1.0.0
+Module: GamingStatsSync.dll
+Type: GenericPlugin
+Links:
+  - Name: Source
+    Url: https://github.com/AniketRaj314/gaming-stats-api

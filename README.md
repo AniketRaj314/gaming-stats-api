@@ -2,9 +2,9 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.5.2** restores Steam achievement rarity when Valve returns global
-unlock percentages as decimal strings. It also includes the Tracker extraction
-repair from 3.5.1 and the expanded artwork coverage released in 3.5.0. See the
+Version **3.6.0** adds secure Playnite library, artwork, playtime, and
+now-playing sync from a Windows gaming PC. It also includes the Steam rarity,
+Tracker extraction, and artwork coverage improvements from 3.5.x. See the
 [release notes](CHANGELOG.md), [Epic guide](docs/epic.md), [Steam guide](docs/steam.md),
 the [PSN guide](docs/psn.md), and the [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
@@ -16,9 +16,10 @@ during frontend migration.
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
 | Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/badges`, `/steam/games/:appId` | Live; opt-in for other installations |
 | Epic | `/epic/library`, `/epic/games/:gameId` | Live on the owner deployment; opt-in for other installations |
+| Playnite | `/playnite/library`, `/playnite/presence`, `/playnite/games/:playniteId`, `/playnite/assets/:assetId` | Windows extension; opt-in |
 
-Playnite is being evaluated as a source for local PC games; see the
-[feasibility notes](docs/playnite.md). No Playnite sync or ingestion route exists yet.
+Playnite supplies local-game and launcher-observed PC activity through a small
+Windows extension. See the [Playnite setup guide](docs/playnite.md).
 
 The Valorant quick start below applies only to that provider. PSN, Steam, and Epic have
 separate setup, storage, and refresh jobs. See the [frontend migration guide](docs/valorant-route-migration.md)
@@ -28,8 +29,9 @@ Public documentation is available at `/docs` and `/llms.txt` for the provider
 index, `/psn/docs` and `/psn/llms.txt` for PSN, and `/custom/valorant/docs` and
 `/custom/valorant/llms.txt` for Valorant. Steam documentation is at `/steam/docs`
 and `/steam/llms.txt`; Epic documentation is at `/epic/docs` and
-`/epic/llms.txt`. PSN, Steam, and Epic data use the same existing `X-API-Key`
-header as Valorant stats; only the documentation is public.
+`/epic/llms.txt`; Playnite documentation is at `/playnite/docs` and
+`/playnite/llms.txt`. PSN, Steam, Epic, and Playnite data use the same existing
+`X-API-Key` header as Valorant stats; only the documentation is public.
 
 This project serves provider data from stored snapshots through a small
 authenticated Express API. Valorant snapshots are refreshed from tracker.gg and
@@ -58,6 +60,7 @@ For request examples and API usage, open the built-in docs page after the server
 - PSN played history, typed concept artwork and screenshots, trophy summary, current presence, and per-game trophy details
 - Steam profile, all API-visible owned/free-subscription games, platform and Deck playtime, safe catalog metadata, current/original artwork and screenshots, recent playtime, badges/XP, achievements, rarity, title stats, and current players
 - Epic claimed base-game library, complete typed catalog artwork metadata, playtime, and automatic discovery of new claims
+- Playnite local and launcher-linked games, local artwork, installed state, tracked playtime, launch count, and expiring now-playing presence
 
 ## Requirements
 
@@ -82,6 +85,10 @@ details for library/playtime visibility. No Steam password or session is used.
 Epic is optional. It requires persistent storage, the existing 32-byte gaming
 encryption key, and a one-time owner sign-in through Epic's official website.
 The gaming PC does not need to stay on.
+
+Playnite is optional. It requires the Gaming Stats Sync extension on a Windows
+PC and a dedicated upload key. The PC only needs to run while Playnite is
+tracking or syncing a session.
 
 ## Valorant Quick Start
 
@@ -207,6 +214,10 @@ and generate a fresh value before reconnecting.
 | `EPIC_REFRESH_MINUTES` | No | Epic library/playtime cadence. Defaults to `15`; allowed `5–1440` |
 | `EPIC_CATALOG_HOURS` | No | Epic catalog metadata cadence. Defaults to `24`; allowed `1–168` |
 | `EPIC_MAX_STALE_HOURS` | No | Epic stale serving window. Defaults to `24`; allowed `1–168` |
+| `ENABLE_PLAYNITE` | No | Enables Playnite read and private sync routes. Defaults to `false` |
+| `PLAYNITE_UPLOAD_KEYS` | Yes for Playnite | Comma-separated upload keys, each 32–512 characters; keep separate from read keys |
+| `PLAYNITE_LIBRARY_STALE_HOURS` | No | Playnite library stale threshold. Defaults to `24`; allowed `1–720` |
+| `PLAYNITE_PRESENCE_TTL_SECONDS` | No | Time without a heartbeat before presence becomes offline. Defaults to `180`; allowed `30–900` |
 
 ## Steam Setup
 
@@ -244,6 +255,21 @@ The CLI prints an official Epic sign-in URL and accepts only the returned
 one-time code through a hidden prompt. After the library is ready, enable Epic
 and redeploy. See [docs/epic.md](docs/epic.md) for the full security, data,
 recovery, and disconnect contract.
+
+## Playnite Setup
+
+Generate a dedicated upload key, store it in Railway as
+`PLAYNITE_UPLOAD_KEYS`, set `ENABLE_PLAYNITE=true`, and redeploy. Install the
+Gaming Stats Sync `.pext` built by the repository's Windows workflow, then enter
+the deployment origin and the same upload key in its Playnite settings. Use
+`Sync now` once to publish the first complete snapshot.
+
+Playnite remains the local source for local games and launcher-observed PC
+activity. A game launched through Playnite can publish tracked playtime and
+now-playing presence even when its direct provider lacks those fields. The
+snapshot remains readable while the PC is off, and presence expires to offline.
+See [docs/playnite.md](docs/playnite.md) for installation, security, data fields,
+credential rotation, verification, and recovery.
 
 ## How Refreshing Works
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.6.0 - 2026-09-20
+
+- Add a Playnite provider with cached complete-library, per-game, artwork, and
+  expiring now-playing routes.
+- Add private upload endpoints protected by a dedicated revocable Playnite key,
+  schema validation, replay protection, atomic snapshots, and content-addressed
+  artwork storage.
+- Add a Playnite 10 C# extension that uploads safe game metadata, tracked
+  playtime, launch count, icon/cover/background artwork, and automatic presence.
+- Protect the upload key with the current Windows user's Data Protection API and
+  exclude executable paths, launch commands, notes, and launcher credentials.
+- Add the Windows build/package workflow plus complete server, extension,
+  security, setup, rotation, recovery, and frontend contract documentation.
+
 ## 3.5.2 - 2026-09-18
 
 - Normalize Steam global achievement percentages from Valve's decimal-string

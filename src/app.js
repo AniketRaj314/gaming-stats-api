@@ -1,19 +1,22 @@
 const express = require('express');
 const { version } = require('../package.json');
 
-const { requireApiKey } = require('./shared/auth');
+const { requireApiKey, requireHeaderKey } = require('./shared/auth');
 const { createValorantRouter } = require('./providers/valorant');
 const { createPsnRouter } = require('./providers/psn/routes');
 const { createSteamRouter } = require('./providers/steam/routes');
 const { createEpicRouter } = require('./providers/epic/routes');
+const { createPlayniteRouter } = require('./providers/playnite/routes');
 const { createGamingDocsRouter } = require('./routes/gamingDocs');
 
 function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled', steamService = null,
-  steamStatus = 'disabled', epicService = null, epicStatus = 'disabled' } = {}) {
+  steamStatus = 'disabled', epicService = null, epicStatus = 'disabled', playniteService = null,
+  playniteStatus = 'disabled', playniteUploadKeys = [] } = {}) {
   const app = express();
   const auth = requireApiKey(validKeys);
+  const playniteUploadAuth = requireHeaderKey(playniteUploadKeys, 'x-playnite-key', 'Invalid or missing Playnite upload key');
 
-  app.use(express.json());
+  app.use(express.json({ limit: '4mb' }));
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', version, uptime: Math.floor((Date.now() - startTime) / 1000) });
@@ -29,6 +32,8 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   app.use('/psn', auth, createPsnRouter({ service: psnService, unavailableStatus: psnStatus }));
   app.use('/steam', auth, createSteamRouter({ service: steamService, unavailableStatus: steamStatus }));
   app.use('/epic', auth, createEpicRouter({ service: epicService, unavailableStatus: epicStatus }));
+  app.use('/playnite', createPlayniteRouter({ service: playniteService, readAuth: auth,
+    uploadAuth: playniteUploadAuth, unavailableStatus: playniteStatus }));
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

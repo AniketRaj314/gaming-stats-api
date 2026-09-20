@@ -35,6 +35,22 @@ them.
 | PSN | Played history with typed concept media, trophy summary, presence, trophy sets and trophies | Artwork audited through 3.5.0 against the current owner response; broader non-media field review remains open |
 | Epic | Claimed PC base-game library, complete safe typed catalog artwork metadata, playtime | Artwork audited through 3.5.0 against the current owner response; broader non-media catalog field review remains open |
 | Valorant | Profile/card art, rank icons, agent/map performance with official static artwork, and total playtime | Artwork audited through 3.5.0 from the public static-data schemas without a live player refresh |
+| Playnite | Complete selected Playnite library, source identifiers, tracked playtime, launch count, install/activity state, catalog metadata, local icon/cover/background files, and short-lived now-playing presence | Implemented in 3.6.0 against the Playnite SDK model; first owner snapshot verification remains pending |
+
+## Playnite 3.6.0 coverage
+
+Playnite uploads the complete selected library rather than an incremental or
+paginated subset. Each record retains the safe fields listed in the Playnite
+setup guide, including source identifiers, local tracking data, descriptive
+metadata, scores, and three local artwork roles. Presence is a separate,
+short-lived snapshot so an interrupted Windows session cannot remain playing
+indefinitely.
+
+Executable paths, install directories, ROM paths, launch actions and arguments,
+scripts, notes, credentials, cookies, and extension settings are intentionally
+excluded. Hidden games are excluded by default. Direct Epic and Playnite records
+remain separate because Playnite's local tracked time and Epic's upstream time
+can describe overlapping activity.
 
 ## Steam 3.4.1 coverage
 

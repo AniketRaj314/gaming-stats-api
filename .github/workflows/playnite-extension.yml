@@ -1,0 +1,36 @@
+name: Playnite extension
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "playnite-extension/**"
+      - ".github/workflows/playnite-extension.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build extension
+        run: dotnet build playnite-extension/GamingStatsSync/GamingStatsSync.csproj --configuration Release
+      - name: Package extension
+        shell: pwsh
+        run: |
+          $source = "playnite-extension/GamingStatsSync/bin/Release/net462"
+          $stage = "playnite-extension/package"
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          Copy-Item "$source/GamingStatsSync.dll" $stage
+          Copy-Item "$source/GamingStatsSync.pdb" $stage
+          Copy-Item "$source/extension.yaml" $stage
+          Copy-Item "$source/README.md" $stage
+          Compress-Archive -Path "$stage/*" -DestinationPath "playnite-extension/GamingStatsSync-1.0.0.zip"
+          Move-Item "playnite-extension/GamingStatsSync-1.0.0.zip" "playnite-extension/GamingStatsSync-1.0.0.pext"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GamingStatsSync-1.0.0
+          path: playnite-extension/GamingStatsSync-1.0.0.pext
+          if-no-files-found: error
