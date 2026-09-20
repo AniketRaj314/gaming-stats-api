@@ -2,9 +2,10 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.7.0** adds a frontend-ready aggregate library and multi-session
-now-playing API over the cached provider snapshots. It preserves raw provider
-records while resolving confirmed game identity and overlapping playtime. See
+Version **3.7.1** adds a frontend-ready aggregate library and multi-session
+now-playing API over the cached provider snapshots, with explicit portrait,
+landscape, square, and icon artwork roles plus every retained source image. It
+preserves raw provider records while resolving confirmed game identity and overlapping playtime. See
 the [aggregate guide](docs/aggregate.md), [frontend handoff](docs/frontend-aggregate-handoff.md),
 [release notes](CHANGELOG.md), and [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
@@ -65,6 +66,7 @@ For request examples and API usage, open the built-in docs page after the server
 - Playnite local and launcher-linked games, local artwork, installed state, tracked playtime, launch count, and expiring now-playing presence
 - Canonical cross-provider games with edition/copy breakdowns and explicit playtime selection rules
 - Multiple simultaneous now-playing sessions across Steam, PSN, and Playnite
+- Role-based aggregate artwork with complete source provenance and no helper-mirror artwork loss
 
 ## Requirements
 

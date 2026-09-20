@@ -59,6 +59,7 @@ Set `AGGREGATE_IDENTITIES_FILE` to an absolute or working-directory-relative JSO
 - `games[].editions[].copies`: independently played platform or storefront copies.
 - `copies[].observations`: normalized source records, retained so no non-sensitive provider fields are lost.
 - `copies[].playtime`: the selected lifetime value, source, precision, selection rule, platform components, and excluded overlapping observations.
+- `artwork`: explicit selected portrait, landscape, square, and icon assets plus every retained alternative.
 - `possibleMatches`: exact normalized title candidates that have not been confirmed in the registry.
 
 The route returns HTTP 200 if at least one source is usable. A partial provider failure does not hide healthy sources. It returns HTTP 503 only when no library source can be used.
@@ -76,6 +77,54 @@ The service only adds playtime observations that represent independent activity:
 - Independent storefront and platform copies can be summed inside an edition or work.
 
 `playtime.status` distinguishes known, partial, ambiguous, and unknown values. Frontends must never render unknown as zero. `knownSeconds` is the sum of known independent copies, while `unknownCopyCount` records missing contributions.
+
+## Artwork contract
+
+Every canonical game and copy returns:
+
+```json
+{
+  "artwork": {
+    "portraitUrl": "https://cdn.example/game-portrait.jpg",
+    "landscapeUrl": "https://cdn.example/game-landscape.jpg",
+    "squareUrl": null,
+    "iconUrl": null,
+    "all": [
+      {
+        "url": "https://cdn.example/game-landscape.jpg",
+        "provider": "epic",
+        "providerGameId": "provider-id",
+        "sourceRole": "authoritative",
+        "type": "DieselGameBox",
+        "roles": ["landscape"],
+        "width": 2560,
+        "height": 1440,
+        "contentType": null,
+        "metadata": {
+          "sizeBytes": 941788,
+          "uploadedAt": "2020-05-14T01:10:29.148Z",
+          "checksumMd5": "79155f950f32c9790073feaccae570fb"
+        },
+        "sources": [
+          {
+            "provider": "epic",
+            "providerGameId": "provider-id",
+            "sourceRole": "authoritative",
+            "type": "DieselGameBox",
+            "metadata": {}
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The selected role fields are independent. A provider can supply landscape and portrait art without supplying a square image or icon, in which case the missing fields remain null. `all` retains every distinct safe artwork URL across authoritative and helper observations. It also includes non-selected logos, backgrounds, character layers, and screenshots. Identical URLs are deduplicated while `sources` preserves every contributing record.
+
+Selection prefers an authoritative provider observation over a Playnite helper mirror. Within the same authority level, provider-specific semantic types are preferred, followed by their known role and resolution. For an Epic game mirrored in Playnite, Epic `DieselGameBox` becomes `landscapeUrl`, Epic `DieselGameBoxTall` becomes `portraitUrl`, and the Playnite cover and background remain in `all`. A local Playnite game uses its own icon, cover, and background according to their dimensions.
+
+The aggregate contract does not return generic `coverUrl` or `backgroundUrl` aliases. Frontends must choose the field that matches the layout.
 
 ## Now playing contract
 
@@ -96,9 +145,11 @@ The service only adds playtime observations that represent independent activity:
         "name": "Miscrits: World of Creatures",
         "edition": { "id": "standard", "name": "Standard" },
         "artwork": {
+          "portraitUrl": null,
+          "landscapeUrl": null,
+          "squareUrl": null,
           "iconUrl": null,
-          "coverUrl": null,
-          "backgroundUrl": null
+          "all": []
         }
       },
       "platform": "unknown",
@@ -125,9 +176,11 @@ The service only adds playtime observations that represent independent activity:
         "name": "VALORANT",
         "edition": { "id": "standard", "name": "Standard" },
         "artwork": {
+          "portraitUrl": "/playnite/assets/example-portrait",
+          "landscapeUrl": "/playnite/assets/example-landscape",
+          "squareUrl": null,
           "iconUrl": null,
-          "coverUrl": "/playnite/assets/example",
-          "backgroundUrl": "/playnite/assets/example"
+          "all": []
         }
       },
       "platform": "windows",
