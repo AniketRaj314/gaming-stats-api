@@ -211,13 +211,14 @@ Provider priority is applied only when observations describe the same session. A
 Top-level `state` is:
 
 - `playing`: at least one fresh session exists.
-- `online`: a fresh provider reports online but no game.
-- `offline`: at least one presence source is fresh and none reports online or playing.
+- `offline`: at least one presence source is fresh but no game is running. Provider or extension availability by itself is not treated as owner activity.
 - `unknown`: every presence source is disabled, stale, or unavailable. The endpoint returns HTTP 503 for this state.
+
+The aggregate route deliberately does not return an `online` state. Steam persona availability, PSN idle presence, and a Playnite heartbeat can come from another logged-in operating-system user or simply show that a client is open. Only a reported current game establishes live owner activity.
 
 ## Errors and security
 
-- HTTP 200: usable library, known game, or resolved playing/online/offline state.
+- HTTP 200: usable library, known game, or resolved playing/offline state.
 - HTTP 401: missing or invalid shared read key.
 - HTTP 404: unknown canonical game ID.
 - HTTP 503: no usable library source or no fresh presence source.

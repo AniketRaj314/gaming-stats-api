@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.7.2 - 2026-09-20
+
+- Treat fresh provider or Playnite availability without a current game as
+  aggregate `offline` instead of `online`.
+- Reserve aggregate live activity for actual current-game sessions, preventing
+  another Windows user's Playnite heartbeat from implying owner activity.
+- Remove `online` from the aggregate now-playing state contract and update the
+  frontend handoff and public documentation.
+
 ## 3.7.1 - 2026-09-20
 
 - Replace generic aggregate cover/background selection with explicit portrait,

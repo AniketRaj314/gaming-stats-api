@@ -316,11 +316,8 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
       playnite: sourceSummary(input.playnitePresence, playniteStatus),
     };
     const anyFresh = Object.values(presenceSources).some(value => ACTIVE.has(value.status));
-    const anyOnline = (ACTIVE.has(input.steamProfile.status) && input.steamProfile.personaState && input.steamProfile.personaState !== 'offline')
-      || (ACTIVE.has(input.psnPresence.status) && input.psnPresence.online === true)
-      || (ACTIVE.has(input.playnitePresence.status) && ['online', 'playing'].includes(input.playnitePresence.state));
     return { schemaVersion: 1, provider: 'aggregate', accountRef: 'owner', generatedAt: new Date(now()).toISOString(),
-      state: sessions.length ? 'playing' : anyOnline ? 'online' : anyFresh ? 'offline' : 'unknown',
+      state: sessions.length ? 'playing' : anyFresh ? 'offline' : 'unknown',
       sessionCount: sessions.length, sessions, sources: presenceSources };
   }
 

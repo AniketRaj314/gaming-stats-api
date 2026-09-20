@@ -29,9 +29,10 @@ Recommended behavior:
 4. Optionally use `detectedBy` for a detail such as "Detected by Steam and Playnite."
 5. Use `startedAt` only when non-null.
 6. Do not infer a Steam operating system when `platform` is `unknown`.
-7. If `state` is `online`, show online without a game if the product supports it.
-8. If `state` is `offline`, clear now-playing UI.
-9. If the request is HTTP 503 or `state` is `unknown`, retain the last known display only according to the frontend's own short error policy. Do not label the user offline.
+7. If `state` is `offline`, clear now-playing UI and show the owner as offline.
+8. If the request is HTTP 503 or `state` is `unknown`, retain the last known display only according to the frontend's own short error policy. Do not label the user offline.
+
+Provider availability is not owner availability. A Steam account being online, a PSN account being idle, or a Playnite extension sending heartbeats without a current game all resolve to aggregate `offline`. This avoids showing another Windows user's Playnite process as the owner's activity.
 
 There is no single global winner. Provider priority only removes duplicate observations of the same session. Steam and Playnite reporting the same Steam game produce one session with `primarySource: "steam"`. Steam reporting Miscrits and Playnite reporting VALORANT produce two sessions.
 
@@ -132,7 +133,7 @@ Playnite artwork paths are relative to the API origin and require the same `X-AP
 type AggregateNowPlaying = {
   schemaVersion: 1;
   provider: "aggregate";
-  state: "playing" | "online" | "offline" | "unknown";
+  state: "playing" | "offline" | "unknown";
   sessionCount: number;
   sessions: Array<{
     id: string;
