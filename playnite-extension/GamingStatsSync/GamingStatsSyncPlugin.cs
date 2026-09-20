@@ -271,7 +271,7 @@ namespace GamingStatsSync
                 try
                 {
                     using (var stream = new MemoryStream(bytes))
-                    using (var image = Image.FromStream(stream, false, true)) { width = image.Width; height = image.Height; }
+                    using (var image = System.Drawing.Image.FromStream(stream, false, true)) { width = image.Width; height = image.Height; }
                 }
                 catch { }
                 return new ArtworkItemDto { assetId = hash, contentType = contentType, width = width, height = height };
