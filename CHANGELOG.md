@@ -13,6 +13,8 @@
   exclude executable paths, launch commands, notes, and launcher credentials.
 - Add the Windows build/package workflow plus complete server, extension,
   security, setup, rotation, recovery, and frontend contract documentation.
+- Update the extension to 1.0.1 so manual game additions, removals, and edits
+  trigger a debounced library sync; manual Sync now also publishes presence.
 
 ## 3.5.2 - 2026-09-18
 

@@ -22,14 +22,16 @@ namespace GamingStatsSync
     [LoadPlugin]
     public sealed class GamingStatsSyncPlugin : GenericPlugin
     {
-        private const string ExtensionVersion = "1.0.0";
+        private const string ExtensionVersion = "1.0.1";
         private static readonly ILogger Logger = LogManager.GetLogger();
         private readonly HttpClient client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         private readonly object sequenceLock = new object();
+        private readonly object libraryChangeLock = new object();
         private readonly SemaphoreSlim syncLock = new SemaphoreSlim(1, 1);
         private readonly string sequencePath;
         private long sequence;
         private Timer heartbeat;
+        private Timer libraryChangeTimer;
         private CurrentGameDto currentGame;
         private GamingStatsSyncSettings settings;
 
@@ -41,6 +43,8 @@ namespace GamingStatsSync
             settings = new GamingStatsSyncSettings(this);
             sequencePath = Path.Combine(GetPluginUserDataPath(), "sequence.txt");
             sequence = LoadSequence();
+            PlayniteApi.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+            PlayniteApi.Database.Games.ItemUpdated += Games_ItemUpdated;
         }
 
         public override ISettings GetSettings(bool firstRunSettings) => settings;
@@ -52,7 +56,11 @@ namespace GamingStatsSync
             {
                 MenuSection = "@Gaming Stats Sync",
                 Description = "Sync now",
-                Action = _ => QueueLibrarySync(true),
+                Action = _ =>
+                {
+                    QueuePresence(currentGame == null ? "online" : "playing", currentGame);
+                    QueueLibrarySync(true);
+                },
             };
             yield return new MainMenuItem
             {
@@ -76,9 +84,9 @@ namespace GamingStatsSync
             try { SendPresenceAsync(BuildPresence("offline", null)).Wait(TimeSpan.FromSeconds(3)); } catch { }
         }
 
-        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args) => QueueLibrarySync(false);
-        public override void OnGameInstalled(OnGameInstalledEventArgs args) => QueueLibrarySync(false);
-        public override void OnGameUninstalled(OnGameUninstalledEventArgs args) => QueueLibrarySync(false);
+        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args) => ScheduleLibrarySync();
+        public override void OnGameInstalled(OnGameInstalledEventArgs args) => ScheduleLibrarySync();
+        public override void OnGameUninstalled(OnGameUninstalledEventArgs args) => ScheduleLibrarySync();
 
         public override void OnGameStarted(OnGameStartedEventArgs args)
         {
@@ -99,7 +107,28 @@ namespace GamingStatsSync
             StopHeartbeat();
             currentGame = null;
             QueuePresence("online", null);
-            QueueLibrarySync(false);
+            ScheduleLibrarySync();
+        }
+
+        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> args) => ScheduleLibrarySync();
+        private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> args) => ScheduleLibrarySync();
+
+        private void ScheduleLibrarySync()
+        {
+            if (!settings.IsConfigured) return;
+            lock (libraryChangeLock)
+            {
+                libraryChangeTimer?.Dispose();
+                libraryChangeTimer = new Timer(_ =>
+                {
+                    lock (libraryChangeLock)
+                    {
+                        libraryChangeTimer?.Dispose();
+                        libraryChangeTimer = null;
+                    }
+                    QueueLibrarySync(false);
+                }, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+            }
         }
 
         private void StopHeartbeat()
@@ -370,7 +399,14 @@ namespace GamingStatsSync
 
         public override void Dispose()
         {
+            PlayniteApi.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
+            PlayniteApi.Database.Games.ItemUpdated -= Games_ItemUpdated;
             StopHeartbeat();
+            lock (libraryChangeLock)
+            {
+                libraryChangeTimer?.Dispose();
+                libraryChangeTimer = null;
+            }
             client.Dispose();
             syncLock.Dispose();
             base.Dispose();

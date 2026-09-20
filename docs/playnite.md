@@ -90,8 +90,8 @@ key.
 
 The extension source is in `playnite-extension/GamingStatsSync`. The repository's
 Playnite extension workflow builds the Windows package. Download the
-`GamingStatsSync-1.0.0` workflow artifact, extract it if GitHub supplied an outer
-artifact zip, and open `GamingStatsSync-1.0.0.pext` on the gaming PC. Playnite
+`GamingStatsSync-1.0.1` workflow artifact, extract it if GitHub supplied an outer
+artifact zip, and open `GamingStatsSync-1.0.1.pext` on the gaming PC. Playnite
 will install it and request a restart.
 
 In Playnite, open `Add-ons > Extension settings > Generic > Gaming Stats Sync`:
@@ -108,8 +108,9 @@ user. It is not stored as plain text in the Playnite settings file.
 
 ## Automatic behavior
 
-The extension sends a full library snapshot when Playnite starts, after library
-updates, after install/uninstall events, and when a game stops. It sends presence
+The extension sends a full library snapshot when Playnite starts, after games
+are added, removed, or edited, after library updates, after install/uninstall
+events, and when a game stops. It sends presence
 when Playnite starts or stops and when a game starts or stops. While a game is
 running, a heartbeat is sent every 60 seconds.
 

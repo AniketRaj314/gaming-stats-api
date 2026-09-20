@@ -27,10 +27,10 @@ jobs:
           Copy-Item "$source/GamingStatsSync.pdb" $stage
           Copy-Item "$source/extension.yaml" $stage
           Copy-Item "$source/README.md" $stage
-          Compress-Archive -Path "$stage/*" -DestinationPath "playnite-extension/GamingStatsSync-1.0.0.zip"
-          Move-Item "playnite-extension/GamingStatsSync-1.0.0.zip" "playnite-extension/GamingStatsSync-1.0.0.pext"
+          Compress-Archive -Path "$stage/*" -DestinationPath "playnite-extension/GamingStatsSync-1.0.1.zip"
+          Move-Item "playnite-extension/GamingStatsSync-1.0.1.zip" "playnite-extension/GamingStatsSync-1.0.1.pext"
       - uses: actions/upload-artifact@v4
         with:
-          name: GamingStatsSync-1.0.0
-          path: playnite-extension/GamingStatsSync-1.0.0.pext
+          name: GamingStatsSync-1.0.1
+          path: playnite-extension/GamingStatsSync-1.0.1.pext
           if-no-files-found: error
