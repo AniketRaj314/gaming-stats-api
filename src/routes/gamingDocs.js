@@ -86,6 +86,24 @@ const epicGame = {
   ] },
   playtimeMinutes: 90.5, playtimeStatus: 'known', lastPlayedAt: null,
 };
+const playniteEnvelope = {
+  schemaVersion: 1, provider: 'playnite', accountRef: 'owner', status: 'ready', stale: false,
+  lastAttemptAt: '2026-09-20T12:00:00.000Z', lastSuccessAt: '2026-09-20T12:00:00.000Z', nextRefreshAt: null,
+};
+const playniteGame = {
+  playniteId: 'a85aec7d-447d-4c0c-9506-f8b27c2ad310', providerGameId: 'example-provider-id',
+  libraryPluginId: null, source: { id: null, name: 'Epic' }, name: 'Example Game', sortingName: null,
+  playtimeSeconds: 5460, playtimeMinutes: 91, playCount: 3,
+  lastActivityAt: '2026-09-20T12:00:00.000Z', addedAt: null, modifiedAt: null,
+  isInstalled: true, isRunning: true, hidden: false, favorite: true, isCustomGame: false,
+  installSizeBytes: null, releaseDate: { year: 2026, month: 1, day: 1 }, completionStatus: 'Playing',
+  platforms: ['PC (Windows)'], genres: ['Action'], categories: [], tags: [], features: [], ageRatings: [],
+  regions: [], series: [], developers: ['Example Studio'], publishers: ['Example Publisher'],
+  scores: { user: null, critic: null, community: null }, links: [], artwork: {
+    icon: { assetId: 'a'.repeat(64), path: '/playnite/assets/' + 'a'.repeat(64), contentType: 'image/png', width: 256, height: 256 },
+    cover: null, background: null,
+  },
+};
 
 function psnSections() {
   return [
@@ -174,6 +192,34 @@ function epicSections() {
   ];
 }
 
+function playniteSections() {
+  return [
+    { title: 'Overview', text: 'Base path: /playnite\nRead the latest complete library, local artwork, per-game metadata, tracked playtime, and short-lived now-playing state uploaded by the Gaming Stats Sync extension on a Windows PC. The cached library remains readable while the PC is off. Examples are illustrative.' },
+    { title: 'Authentication', text: 'Every read and artwork endpoint requires X-API-Key from a trusted backend. Documentation is public. The Windows extension uses a separate X-Playnite-Key only on private /playnite/sync routes. Never put either credential in browser JavaScript. Read responses use Cache-Control: private, no-store.' },
+    { title: 'Requests', text: 'GET /playnite/library - complete selected Playnite library and totals\nGET /playnite/presence - online, playing, or expired-to-offline presence\nGET /playnite/games/:playniteId - one game selected by its Playnite GUID\nGET /playnite/assets/:assetId - cached JPEG, PNG, WebP, or AVIF artwork selected by SHA-256 ID\nNo read request accepts a body or triggers the Windows PC.' },
+    { title: 'Request example', text: 'PLAYNITE_API_KEY is an existing API_KEYS read key, not the extension upload key.', language: 'sh', code: 'curl --fail-with-body "$API_BASE_URL/playnite/library" \\\n  -H "X-API-Key: $PLAYNITE_API_KEY"' },
+    { title: 'Library response', text: 'The extension publishes a complete selected snapshot. playtimeSeconds is Playnite\'s tracked/imported total and playtimeMinutes is derived using whole elapsed minutes. Artwork paths require the same read key. The record also retains source and library IDs, play count, timestamps, install/running/favorite/custom flags, install size, release date, completion status, descriptive metadata, scores, and safe HTTPS links. Hidden games are excluded by default. A direct Epic record and its Playnite record remain separate and their playtime must not be added together.', language: 'json', code: JSON.stringify({ ...playniteEnvelope,
+      deviceId: 'be30ba39-154f-4c93-9830-781979722243', deviceName: 'Gaming PC', sequence: 1726833600000,
+      generatedAt: '2026-09-20T12:00:00.000Z', playniteVersion: '10.35', extensionVersion: '1.0.0',
+      coverage: { kind: 'complete-playnite-library', gameCount: 1, artworkUploaded: true },
+      totals: { gameCount: 1, installedGameCount: 1, playedGameCount: 1, totalPlaytimeSeconds: 5460 }, games: [playniteGame],
+    }, null, 2) },
+    { title: 'Presence response', text: 'Presence reports online or playing while extension updates arrive. A playing response includes the stable Playnite ID, provider game ID, source, name, and session start. When no update arrives within PLAYNITE_PRESENCE_TTL_SECONDS, the API returns stale/offline and clears currentGame so a crashed or sleeping PC cannot remain playing forever.', language: 'json', code: JSON.stringify({ ...playniteEnvelope,
+      deviceId: 'be30ba39-154f-4c93-9830-781979722243', deviceName: 'Gaming PC', sequence: 1726833600001,
+      generatedAt: '2026-09-20T12:00:00.000Z', playniteVersion: '10.35', extensionVersion: '1.0.0', state: 'playing',
+      currentGame: { playniteId: playniteGame.playniteId, providerGameId: playniteGame.providerGameId,
+        source: playniteGame.source, name: playniteGame.name, startedAt: '2026-09-20T11:55:00.000Z' },
+    }, null, 2) },
+    { title: 'Game response', text: 'A malformed Playnite GUID returns HTTP 400. A valid GUID absent from the current cached library returns HTTP 404. A known game repeats snapshot freshness and device metadata and returns the same normalized game object.', language: 'json', code: JSON.stringify({ ...playniteEnvelope,
+      deviceId: 'be30ba39-154f-4c93-9830-781979722243', deviceName: 'Gaming PC', sequence: 1726833600000,
+      generatedAt: '2026-09-20T12:00:00.000Z', playniteVersion: '10.35', extensionVersion: '1.0.0', game: playniteGame,
+    }, null, 2) },
+    { title: 'Freshness and errors', text: 'HTTP 200 serves ready or stale library/presence and known game records. HTTP 400 means a malformed identifier. HTTP 401 means a missing or invalid read key. HTTP 404 means the game or artwork is absent. HTTP 503 means disabled, pending, corrupt, or unavailable storage. Library status becomes stale after PLAYNITE_LIBRARY_STALE_HOURS. Presence becomes offline after its TTL. Never render pending or unavailable as an empty library or zero playtime.' },
+    { title: 'Extension behavior', text: 'The extension sends a complete library on Playnite start, library changes, game install/uninstall, and game stop. It sends presence on application and game state changes plus a 60-second heartbeat while playing. It uploads only content-addressed local artwork that the server does not already have. Launch games through Playnite for reliable session tracking.' },
+    { title: 'Owner setup', text: 'Create an independent random upload key, set ENABLE_PLAYNITE=true and PLAYNITE_UPLOAD_KEYS on the server, and keep GAMING_DATA_DIR on persistent storage. Install GamingStatsSync-1.0.0.pext on Windows. In Add-ons > Extension settings > Generic > Gaming Stats Sync, enter the HTTPS deployment origin and upload key, save, then choose Sync now. The extension protects the key for the current Windows user and excludes paths, launch commands, notes, scripts, cookies, and store credentials.', language: 'sh', code: 'node -e "process.stdout.write(require(\'node:crypto\').randomBytes(32).toString(\'hex\'))"\n# Set the result privately as PLAYNITE_UPLOAD_KEYS, then:\nENABLE_PLAYNITE=true npm start' },
+  ];
+}
+
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 function markdown(title, sections) {
   return `# ${title}\n\nVersion: ${version}\n\n` + sections.map(s => `## ${s.title}\n\n${s.text}${s.code ? `\n\n\`\`\`${s.language || ''}\n${s.code}\n\`\`\`` : ''}`).join('\n\n') + '\n';
@@ -189,15 +235,16 @@ function createGamingDocsRouter() {
   const setup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/psn.md';
   const steamSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/steam.md';
   const epicSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/epic.md';
+  const playniteSetup = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/playnite.md';
   const coverage = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/data-coverage.md';
   const indexSections = [
-    { title: 'Providers', text: 'Valorant: /custom/valorant — cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn — cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam — cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic — cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite ingestion for local games remains planned.' },
-    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')' },
-    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, Steam, and Epic data require X-API-Key from a server-side consumer. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
+    { title: 'Providers', text: 'Valorant: /custom/valorant - cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn - cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam - cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic - cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite: /playnite - cached local/launcher library, artwork, tracked playtime, and expiring now-playing presence from the Windows extension.' },
+    { title: 'Documentation', text: '[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Playnite guide](/playnite/docs)\n[Playnite machine-readable guide](/playnite/llms.txt)\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')\n[Playnite setup](' + playniteSetup + ')' },
+    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Valorant, PSN, Steam, Epic, and Playnite data require X-API-Key from a server-side consumer. The Playnite Windows extension has a separate upload-only key. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
   ];
   router.get('/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API', indexSections)));
   router.get(['/', '/docs'], (req,res)=>res.type('html').send(html('Gaming Stats API', indexSections.filter(s=>s.title!=='Documentation'), [
-    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['PSN setup',setup],['Steam setup',steamSetup],['Epic setup',epicSetup],
+    ['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['Playnite docs','/playnite/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['PSN setup',setup],['Steam setup',steamSetup],['Epic setup',epicSetup],['Playnite setup',playniteSetup],
   ])));
   router.get('/psn/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — PSN', psnSections())));
   router.get(['/psn','/psn/docs'], (req,res)=>res.type('html').send(html('PSN API', psnSections(), [
@@ -210,6 +257,10 @@ function createGamingDocsRouter() {
   router.get('/epic/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API — Epic', epicSections())));
   router.get(['/epic','/epic/docs'], (req,res)=>res.type('html').send(html('Epic API', epicSections(), [
     ['All providers','/docs'],['llms.txt','/epic/llms.txt'],['Setup and operations',epicSetup],
+  ])));
+  router.get('/playnite/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API: Playnite', playniteSections())));
+  router.get(['/playnite','/playnite/docs'], (req,res)=>res.type('html').send(html('Playnite API', playniteSections(), [
+    ['All providers','/docs'],['llms.txt','/playnite/llms.txt'],['Setup and operations',playniteSetup],
   ])));
   return router;
 }

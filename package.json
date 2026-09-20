@@ -1,12 +1,13 @@
 {
   "name": "gaming-stats-api",
-  "version": "3.5.2",
-  "description": "Self-hostable gaming stats API with cached Valorant, PSN, Steam, and Epic integrations",
+  "version": "3.6.0",
+  "description": "Self-hostable gaming stats API with Valorant, PSN, Steam, Epic, and Playnite integrations",
   "keywords": [
     "valorant",
     "steam",
     "psn",
     "epic-games",
+    "playnite",
     "gaming",
     "api",
     "stats",
@@ -40,7 +41,8 @@
     "epic:disconnect": "node scripts/epic/cli.js disconnect",
     "test:psn": "jest tests/psn --runInBand",
     "test:steam": "jest tests/steam --runInBand",
-    "test:epic": "jest tests/epic --runInBand"
+    "test:epic": "jest tests/epic --runInBand",
+    "test:playnite": "jest tests/playnite --runInBand"
   },
   "jest": {
     "testEnvironment": "node",

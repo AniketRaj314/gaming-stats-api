@@ -1,64 +1,145 @@
-# Playnite feasibility
+# Playnite sync
 
-Research only, September 16, 2026. The direct Epic provider is implemented
-separately; no Playnite extension, ingestion endpoint, or local-game provider has
-been implemented.
+Playnite is the Windows-side source for local games and launcher-observed PC
+activity. The Gaming Stats Sync extension uploads a complete, sanitized Playnite
+library snapshot, local artwork, and short-lived presence to Gaming Stats API.
+The API then serves those cached snapshots even while the gaming PC is off.
 
-## What it can provide
+This provider complements the direct integrations. An Epic game can appear in
+both `/epic` and `/playnite`: `/epic` is the authoritative claimed-library
+record, while `/playnite` supplies local installation state, Playnite-tracked
+playtime, launch count, metadata, artwork, and now-playing activity. Consumers
+must not add the two playtime totals together.
 
-[Playnite](https://playnite.link/) combines store libraries and manually added
-games on a Windows PC. Its [Epic integration source](https://github.com/JosefNemec/PlayniteExtensions/blob/master/source/Libraries/EpicLibrary/EpicLibrary.cs)
-imports installed games and authenticated account-library entries, including
-Epic-reported playtime when available. Importing uninstalled entries depends on
-the integration settings. Playtime import also depends on Playnite's
-[import settings](https://api.playnite.link/docs/manual/gettingStarted/configuringPlaynite.html).
+## What is uploaded
 
-[Local games](https://api.playnite.link/docs/manual/library/games/addingGames.html)
-can be added by executable/shortcut, directory scan, or manual configuration.
-Correct launch/tracking settings are needed for local playtime; this does not
-reconstruct historical playtime that was never recorded.
+Each Playnite game can include:
 
-The [SDK library API](https://api.playnite.link/docs/tutorials/extensions/library.html)
-lets an extension enumerate game records and react to library updates. The
-[game model](https://api.playnite.link/docs/api/Playnite.SDK.Models.Game.html)
-exposes identifiers, source, name, playtime in seconds, last activity, and
-installation state. This makes a custom stats exporter feasible; it is not an
-existing connection to Gaming Stats API.
+- Playnite ID, source ID/name, provider game ID, and library plugin ID
+- name and sorting name
+- playtime in seconds, derived whole minutes, play count, and last activity
+- added and modified timestamps
+- installed, running, hidden, favorite, and custom-game flags
+- install size and release date
+- completion status, platforms, genres, categories, tags, features, age ratings,
+  regions, series, developers, publishers, and scores
+- safe HTTPS links
+- locally stored icon, cover, and background artwork
 
-## Proposed integration
+The extension never uploads executable paths, install directories, ROM paths,
+launch arguments, scripts, notes, cookies, launcher credentials, or Playnite
+settings. The API accepts only bounded, explicitly normalized fields. Hidden
+games are excluded by default and can be enabled in the extension settings.
 
-1. Playnite on the gaming PC tracks manually added and other approved local games.
-2. A small extension reads approved game fields through the SDK and sends a
-   versioned snapshot over HTTPS to a dedicated authenticated ingestion endpoint.
-3. Gaming Stats API validates and stores the snapshot; the website reads cached
-   data even when the PC is off, with the last successful sync time displayed.
+## Public read contract
 
-Keep store credentials inside their existing local integrations. Give the
-exporter its own revocable upload credential, separate from website read keys. Export an
-explicit allowlist of game fields, excluding tokens, launch commands, executable
-paths, and private/hidden entries unless explicitly selected for publication.
-The PC only needs outbound HTTPS; the proposal requires no publicly reachable
-local server. These are design requirements, not implemented guarantees.
+Documentation is public. Every data or artwork request requires an existing
+`X-API-Key` read key from `API_KEYS` and should be made by a trusted backend.
 
-Keep `source: playnite` separate from `store: epic` or a manually assigned local
-origin. Use stable source IDs rather than names for matching. Do not sum imported
-Epic totals and locally tracked totals as independent playtime. A Playnite entry
-or install flag is not proof of a purchase or current entitlement. Missing data
-must stay unknown rather than becoming a claimed zero.
+- `GET /playnite/library` returns the complete latest Playnite snapshot and
+  totals.
+- `GET /playnite/presence` returns `online`, `playing`, or `offline` and a current
+  game when Playnite reports one.
+- `GET /playnite/games/:playniteId` returns one cached game by Playnite GUID.
+- `GET /playnite/assets/:assetId` returns a cached content-addressed image.
 
-The `/epic` namespace uses direct Epic snapshots. Choose a separate local-games
-namespace when implementing Playnite ingestion; do not place non-Epic records
-under `/epic`. Route names are not finalized here.
+A library older than `PLAYNITE_LIBRARY_STALE_HOURS` is returned with
+`status: stale`. Presence older than `PLAYNITE_PRESENCE_TTL_SECONDS` becomes
+`offline` with `currentGame: null`; it is not left indefinitely as playing.
 
-## Limits and next check
+## Private sync contract
 
-- Playnite's [supported platform](https://github.com/JosefNemec/Playnite) is Windows;
-  there is no native macOS build for the Mac hosting this repository.
-- Sync only advances while the PC, Playnite, and exporter are running and online.
-- Launch local games through Playnite with working tracking to capture sessions.
-  Imported store totals depend on upstream availability and plugin settings.
-- Achievements and game-specific stats are outside this initial library/playtime
-  proposal and need separate verification.
-- Before building, inspect one explicitly selected, sanitized Epic record and
-  one local-game record from the user's Windows Playnite installation. Verify
-  stable IDs, playtime units, import settings, privacy selection, and sync timing.
+The extension uses a separate `X-Playnite-Key` upload credential. It cannot be
+used to read the other provider routes. Keep it only in Railway secrets and the
+Playnite extension settings.
+
+- `POST /playnite/sync/library` replaces the cached complete snapshot.
+- `POST /playnite/sync/presence` updates short-lived presence.
+- `HEAD /playnite/sync/assets/:assetId` checks whether artwork already exists.
+- `PUT /playnite/sync/assets/:assetId` uploads JPEG, PNG, WebP, or AVIF artwork,
+  up to 12 MB, whose URL ID must equal the file's SHA-256 digest.
+
+Every snapshot has a persistent device ID and monotonically increasing sequence.
+Older or replayed snapshots from the same device are rejected. The server writes
+snapshots and artwork atomically into `GAMING_DATA_DIR/playnite`.
+
+## Server setup
+
+Create a random upload key that is independent from `API_KEYS`:
+
+```sh
+node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Set these Railway variables and redeploy:
+
+```env
+ENABLE_PLAYNITE=true
+PLAYNITE_UPLOAD_KEYS=the-random-key
+GAMING_DATA_DIR=/app/cache/gaming
+PLAYNITE_LIBRARY_STALE_HOURS=24
+PLAYNITE_PRESENCE_TTL_SECONDS=180
+```
+
+Use the existing persistent Railway volume. `PLAYNITE_UPLOAD_KEYS` accepts a
+comma-separated list to support credential rotation. Keep the old and new keys
+briefly during rotation, update Playnite, verify a sync, and then remove the old
+key.
+
+## Build and install the Windows extension
+
+The extension source is in `playnite-extension/GamingStatsSync`. The repository's
+Playnite extension workflow builds the Windows package. Download the
+`GamingStatsSync-1.0.0` workflow artifact, extract it if GitHub supplied an outer
+artifact zip, and open `GamingStatsSync-1.0.0.pext` on the gaming PC. Playnite
+will install it and request a restart.
+
+In Playnite, open `Add-ons > Extension settings > Generic > Gaming Stats Sync`:
+
+1. Set the API URL to `https://api.aniketraj.me`.
+2. Give the PC a recognizable device name.
+3. Paste the dedicated Playnite upload key.
+4. Keep artwork upload enabled.
+5. Leave hidden games excluded unless they should be published.
+6. Save, then use `Main menu > Extensions > Gaming Stats Sync > Sync now`.
+
+The key is protected with Windows Data Protection API for the current Windows
+user. It is not stored as plain text in the Playnite settings file.
+
+## Automatic behavior
+
+The extension sends a full library snapshot when Playnite starts, after library
+updates, after install/uninstall events, and when a game stops. It sends presence
+when Playnite starts or stops and when a game starts or stops. While a game is
+running, a heartbeat is sent every 60 seconds.
+
+For reliable playtime and now-playing data, launch the game through Playnite and
+leave Playnite running during the session. The PC does not need to remain on
+between sessions. The last library snapshot remains available from the API, and
+presence expires to offline if the PC shuts down or loses connectivity.
+
+## Verification
+
+After `Sync now`, check from a trusted machine:
+
+```sh
+curl --fail-with-body "https://api.aniketraj.me/playnite/library" \
+  -H "X-API-Key: $GAMING_API_KEY"
+
+curl --fail-with-body "https://api.aniketraj.me/playnite/presence" \
+  -H "X-API-Key: $GAMING_API_KEY"
+```
+
+Start an Epic or local game through Playnite, then repeat the presence request.
+It should report `state: playing` with the Playnite game ID, source, name, and
+session start time. Stop the game and use `Sync now` if needed; its updated
+Playnite playtime should then appear in `/playnite/library`.
+
+## Recovery
+
+If sync fails, confirm that the server has `ENABLE_PLAYNITE=true`, the same
+upload key exists on both sides, the API URL contains only the HTTPS origin, and
+Playnite can reach it. Use the extension's `Connection status` menu item and the
+Playnite log for details. A lost key can be replaced without reconnecting Steam,
+Epic, or PSN. Removing the extension or disabling this provider does not delete
+Playnite's local library.
