@@ -66,6 +66,12 @@ provenance. Logos, backgrounds, character layers, screenshots, original Steam
 artwork, and Playnite helper assets remain available even when they are not a
 selected primary role.
 
+Aggregate presence was tightened in 3.7.2. A current game is the only signal
+that produces live owner activity. Fresh Steam persona availability, PSN idle
+presence, and Playnite heartbeats with no current game resolve to `offline`.
+When no fresh presence source exists, the state remains `unknown` rather than
+claiming that the owner is offline.
+
 ## Playnite 3.6.0 coverage
 
 Playnite uploads the complete selected library rather than an incremental or

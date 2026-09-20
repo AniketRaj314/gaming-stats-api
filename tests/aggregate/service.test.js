@@ -141,5 +141,14 @@ test('suggests an exact title match without silently merging unconfirmed provide
 test('ignores stale presence when resolving current sessions', () => {
   const aggregate = service({ steamProfile: { ...ready({ personaState: 'online', currentGame: {
     providerGameId: '730', name: 'Counter-Strike 2' } }), status: 'stale', stale: true } });
-  expect(aggregate.nowPlaying()).toMatchObject({ state: 'online', sessionCount: 0 });
+  expect(aggregate.nowPlaying()).toMatchObject({ state: 'offline', sessionCount: 0 });
+});
+
+test('does not treat provider or Playnite availability as owner activity', () => {
+  const aggregate = service({
+    steamProfile: ready({ personaState: 'online', currentGame: null }),
+    psnPresence: ready({ activity: 'idle', online: true, games: [] }),
+    playnitePresence: ready({ state: 'online', currentGame: null }),
+  });
+  expect(aggregate.nowPlaying()).toMatchObject({ state: 'offline', sessionCount: 0, sessions: [] });
 });

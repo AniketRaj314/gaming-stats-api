@@ -42,7 +42,9 @@ test('Aggregate guides cover identity, overlap, concurrent sessions, and fronten
     for (const text of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/:canonicalGameId',
       'sessions', 'primarySource', 'detectedBy', 'possibleMatches', 'unknown', 'Regional',
       'config/game-identities.json', 'portraitUrl', 'landscapeUrl', 'squareUrl', 'artwork.all',
-      'helper mirrors', 'HTTP 401', 'HTTP 503']) expect(res.text).toContain(text);
+      'helper mirrors', 'heartbeats alone never produce an online state', 'HTTP 401', 'HTTP 503']) {
+      expect(res.text).toContain(text);
+    }
   }
   const txt = (await request(app).get('/aggregate/llms.txt')).text;
   const examples = [...txt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]));

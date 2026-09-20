@@ -2,10 +2,10 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.7.1** adds a frontend-ready aggregate library and multi-session
+Version **3.7.2** provides a frontend-ready aggregate library and multi-session
 now-playing API over the cached provider snapshots, with explicit portrait,
 landscape, square, and icon artwork roles plus every retained source image. It
-preserves raw provider records while resolving confirmed game identity and overlapping playtime. See
+preserves raw provider records while resolving confirmed game identity and overlapping playtime. Aggregate presence only reports activity while a game is running. See
 the [aggregate guide](docs/aggregate.md), [frontend handoff](docs/frontend-aggregate-handoff.md),
 [release notes](CHANGELOG.md), and [data coverage policy](docs/data-coverage.md). Valorant uses
 `/custom/valorant`; the original `/valorant` endpoints remain working aliases
