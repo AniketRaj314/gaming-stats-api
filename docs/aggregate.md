@@ -42,7 +42,9 @@ Marvel's Spider-Man
 
 The frontend can show a single game, separate editions, or every copy. The API preserves the hierarchy and does not force a display choice.
 
-Confirmed cross-provider relationships live in [`config/game-identities.json`](../config/game-identities.json). The canonical IDs in this file are stable frontend identifiers. Playnite games whose source is Epic or Steam are linked to the unique matching direct provider record when both the source and normalized title agree. Other exact title matches remain separate and are returned in `possibleMatches` with `status: "unconfirmed"`.
+Confirmed cross-provider relationships live in [`config/game-identities.json`](../config/game-identities.json). The canonical IDs in this file are stable frontend identifiers. Playnite games whose source is Epic or Steam are linked to the unique matching direct provider record when both the source and normalized title agree. Cosmetic trademark, registered-mark, copyright, service-mark, accent, punctuation, and capitalization differences do not prevent a match. Meaningful edition words remain part of the title. Other exact title matches remain separate and are returned in `possibleMatches` with `status: "unconfirmed"`.
+
+A Playnite record sourced from Epic or Steam remains a helper mirror even when the direct provider snapshot has no unique match. Its observation exposes `helperFor` as `epic` or `steam`, its copy is classified under that storefront, and Playnite can provide its playtime and artwork. It is never mislabeled as a local Playnite game. A later unique direct-provider match becomes authoritative without adding the two playtime observations.
 
 This avoids silently merging unrelated releases that share a title, such as the 2006 and 2017 games named *Prey*.
 

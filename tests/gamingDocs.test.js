@@ -42,7 +42,7 @@ test('Aggregate guides cover identity, overlap, concurrent sessions, and fronten
     for (const text of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/:canonicalGameId',
       'sessions', 'primarySource', 'detectedBy', 'possibleMatches', 'unknown', 'Regional',
       'config/game-identities.json', 'portraitUrl', 'landscapeUrl', 'squareUrl', 'artwork.all',
-      'helper mirrors', 'heartbeats alone never produce an online state', 'completionCalculation',
+      'helper mirrors', 'helperFor', 'cosmetic trademark', 'heartbeats alone never produce an online state', 'completionCalculation',
       'Regional PSN', 'Steam achievement', 'PlayStation trophy', 'partial-provider-failure',
       'no-unlock-data', 'HTTP 401', 'HTTP 503']) {
       expect(res.text).toContain(text);
