@@ -7,9 +7,16 @@ const READY = new Set(['ready', 'stale']);
 const ACTIVE = new Set(['ready']);
 
 function normalizedTitle(value) {
-  return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[™®©]/g, '').toLowerCase().replace(/&/g, ' and ')
+  return String(value || '').replace(/[™®©℠]/g, '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function playniteSourceProvider(game) {
+  const source = normalizedTitle(game?.source?.name);
+  if (['epic', 'epic games', 'epic games store'].includes(source)) return 'epic';
+  if (source === 'steam') return 'steam';
+  return null;
 }
 
 function secondsFromMinutes(value) {
@@ -74,7 +81,9 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
   }
 
   function observation(provider, id, game, role = 'authoritative') {
-    return { provider, providerGameId: String(id), role, name: game.name, data: game };
+    const helperFor = provider === 'playnite' ? playniteSourceProvider(game) : null;
+    return { provider, providerGameId: String(id), role, name: game.name,
+      ...(helperFor ? { helperFor } : {}), data: game };
   }
 
   function ensureCopy(works, resolved, provider, game) {
@@ -153,8 +162,13 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
     }
 
     const playnite = by('playnite')[0];
-    if (playnite) return { status: 'known', seconds: playnite.data.playtimeSeconds, precision: 'second',
-      selectedFrom: 'playnite', rule: 'playnite-local-game', excluded: [] };
+    if (playnite) {
+      const helperFor = playnite.helperFor || playniteSourceProvider(playnite.data);
+      return { status: 'known', seconds: playnite.data.playtimeSeconds, precision: 'second',
+        selectedFrom: 'playnite', rule: helperFor
+          ? `playnite-${helperFor}-helper-without-direct-${helperFor}-record`
+          : 'playnite-local-game', excluded: [] };
+    }
     return { status: 'unknown', seconds: null, precision: null, selectedFrom: null, rule: 'no-playtime-observation', excluded: [] };
   }
 
@@ -198,13 +212,18 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
     for (const game of input.playniteLibrary.games || []) {
       let resolved = registry.references.get(`playnite:${game.playniteId}`);
       let role = resolved?.workId === 'valorant' ? 'presence-helper' : 'authoritative';
-      if (!resolved && normalizedTitle(game.source?.name) === 'epic') {
+      const helperFor = playniteSourceProvider(game);
+      if (!resolved && helperFor === 'epic') {
         const matches = epicByTitle.get(normalizedTitle(game.name)) || [];
         if (matches.length === 1) { resolved = matches[0]; role = 'helper-mirror'; }
-      } else if (!resolved && normalizedTitle(game.source?.name) === 'steam') {
+      } else if (!resolved && helperFor === 'steam') {
         const direct = game.providerGameId ? steamById.get(String(game.providerGameId)) : null;
         const matches = direct ? [direct] : steamByTitle.get(normalizedTitle(game.name)) || [];
         if (matches.length === 1) { resolved = matches[0]; role = 'helper-mirror'; }
+      }
+      if (!resolved && helperFor) {
+        resolved = { ...identity('playnite', game.playniteId, game), copy: `${helperFor}-windows` };
+        role = 'helper-mirror';
       }
       add('playnite', game.playniteId, game, resolved || identity('playnite', game.playniteId, game), role);
     }
@@ -353,4 +372,4 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
   return { library: () => buildLibrary(), nowPlaying, game, _buildLibrary: buildLibrary };
 }
 
-module.exports = { createAggregateService, normalizedTitle, valorantSeconds };
+module.exports = { createAggregateService, normalizedTitle, playniteSourceProvider, valorantSeconds };

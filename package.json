@@ -1,6 +1,6 @@
 {
   "name": "gaming-stats-api",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "description": "Self-hostable gaming stats API with Valorant, PSN, Steam, Epic, and Playnite integrations",
   "keywords": [
     "valorant",

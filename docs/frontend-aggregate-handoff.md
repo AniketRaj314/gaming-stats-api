@@ -125,6 +125,8 @@ Do not read `coverUrl` or `backgroundUrl`; those generic fields are not part of 
 
 Authoritative provider artwork wins over a helper mirror for the selected fields. An Epic game mirrored through Playnite therefore uses Epic landscape and portrait art while retaining the Playnite images in `all`. Local Playnite games use their Playnite artwork directly.
 
+Playnite records whose source is Epic or Steam are helper mirrors, not independent local copies. Their observations have `role: "helper-mirror"` and `helperFor: "epic" | "steam"`. Cosmetic title differences such as `™` do not split them from a unique direct provider match. If the direct provider record is missing, label the result as Epic or Steam via Playnite. It can supply fallback playtime and artwork without being labeled as a local game.
+
 Playnite artwork paths are relative to the API origin and require the same `X-API-Key`. Remote Steam, Epic, and PSN URLs are absolute.
 
 ## Suggested TypeScript shape

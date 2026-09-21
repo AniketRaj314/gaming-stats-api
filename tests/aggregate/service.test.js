@@ -22,6 +22,8 @@ function service({ steamLibrary = ready({ games: [] }), steamProfile = ready({ p
 
 test('normalizes titles conservatively and parses displayed Valorant hours', () => {
   expect(normalizedTitle('Rocket League®')).toBe('rocket league');
+  expect(normalizedTitle('Batman™ Arkham Knight')).toBe('batman arkham knight');
+  expect(normalizedTitle('Batman™ Arkham Knight')).toBe(normalizedTitle('Batman Arkham Knight'));
   expect(valorantSeconds('2,018 hrs')).toBe(7_264_800);
   expect(valorantSeconds('unknown')).toBeNull();
 });
@@ -105,6 +107,42 @@ test('deduplicates an Epic game mirrored through Playnite and preserves unknown 
   expect(epicCopy.playtime.seconds).toBeNull();
   expect(epicCopy.playtime.rule).toContain('zero-playnite');
   expect(game.playtime).toMatchObject({ status: 'unknown', unknownCopyCount: 1 });
+});
+
+test('deduplicates an Epic-backed Playnite game when Epic adds a trademark symbol', () => {
+  const epicId = 'xdWFRRRbaN03c0Hwm9BryRFgRuA5Mxk5Ch3q7q_Hbgg';
+  const playniteId = 'b19c6af2-005d-4951-abee-8001e94cf25a';
+  const aggregate = service({
+    epicLibrary: ready({ games: [{ providerGameId: epicId, name: 'Batman™ Arkham Knight',
+      playtimeMinutes: 2323.25, playtimeStatus: 'known', artwork: {} }] }),
+    playniteLibrary: ready({ games: [{ playniteId, providerGameId: 'Cowbird', source: { name: 'Epic' },
+      name: 'Batman Arkham Knight', playtimeSeconds: 139395, artwork: {} }] }),
+  });
+
+  const games = aggregate.library().games.filter(item => normalizedTitle(item.name) === 'batman arkham knight');
+  expect(games).toHaveLength(1);
+  expect(games[0].playtime.knownSeconds).toBe(139395);
+  const copy = games[0].editions[0].copies[0];
+  expect(copy.observations.map(item => [item.provider, item.role])).toEqual([
+    ['epic', 'authoritative'], ['playnite', 'helper-mirror'],
+  ]);
+  expect(copy.observations[1].helperFor).toBe('epic');
+  expect(copy.playtime).toMatchObject({ selectedFrom: 'epic', rule: 'epic-official-with-playnite-mirror-excluded' });
+});
+
+test('keeps an unmatched Epic-backed Playnite game classified as an Epic helper', () => {
+  const playniteId = 'b19c6af2-005d-4951-abee-8001e94cf25a';
+  const aggregate = service({
+    playniteLibrary: ready({ games: [{ playniteId, providerGameId: 'Cowbird', source: { name: 'Epic Games Store' },
+      name: 'Batman Arkham Knight', playtimeSeconds: 139395, artwork: {} }] }),
+  });
+
+  const game = aggregate.library().games.find(item => item.name === 'Batman Arkham Knight');
+  const copy = game.editions[0].copies[0];
+  expect(copy.id).toContain(':epic-windows');
+  expect(copy.observations[0]).toMatchObject({ provider: 'playnite', role: 'helper-mirror', helperFor: 'epic' });
+  expect(copy.playtime).toMatchObject({ selectedFrom: 'playnite',
+    rule: 'playnite-epic-helper-without-direct-epic-record' });
 });
 
 test('does not turn an entirely unknown game into a known zero work total', () => {
