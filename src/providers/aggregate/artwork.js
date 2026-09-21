@@ -69,13 +69,13 @@ function selectArtwork(observations) {
   }
 
   function playnite(game, observation) {
-    const asset = (value, type, fallbackRoles, preference) => {
+    const asset = (value, type, fallbackRoles, preference, inferShape = true) => {
       if (!value?.path) return;
-      const role = shape(value.width, value.height);
+      const role = inferShape ? shape(value.width, value.height) : null;
       add({ url: value.path, type, roles: [...fallbackRoles, role].filter(Boolean), width: value.width,
         height: value.height, contentType: value.contentType, assetId: value.assetId, preference }, observation);
     };
-    asset(game.artwork?.icon, 'icon', ['icon', 'square'], 100);
+    asset(game.artwork?.icon, 'icon', ['icon'], 100, false);
     asset(game.artwork?.cover, 'cover', [], 90);
     asset(game.artwork?.background, 'background', ['background'], 90);
   }
@@ -92,7 +92,7 @@ function selectArtwork(observations) {
       ['headerUrl', ['landscape'], 84], ['packageHeaderUrl', ['landscape'], 82],
       ['smallCapsule2xUrl', ['landscape'], 78], ['smallCapsuleUrl', ['landscape'], 76],
       ['libraryHeaderUrl', ['landscape'], 74], ['pageBackgroundUrl', ['landscape', 'background'], 72],
-      ['rawPageBackgroundUrl', ['landscape', 'background'], 70], ['communityIconUrl', ['icon', 'square'], 98],
+      ['rawPageBackgroundUrl', ['landscape', 'background'], 70], ['communityIconUrl', ['icon'], 98],
       ['libraryLogo2xUrl', ['logo'], 95], ['libraryLogoUrl', ['logo'], 90],
     ];
     for (const [key, roles, preference] of values) add({ url: set[key], type: `${prefix}${key}`,
@@ -100,7 +100,7 @@ function selectArtwork(observations) {
   }
 
   function steam(game, observation) {
-    add({ url: game.iconUrl, type: 'appIcon', roles: ['icon', 'square'], preference: 100 }, observation);
+    add({ url: game.iconUrl, type: 'appIcon', roles: ['icon'], preference: 100 }, observation);
     add({ url: game.coverUrl, type: 'coverUrl', roles: ['portrait'], preference: 88 }, observation);
     steamSet(game.store?.artwork, '', observation);
     steamSet(game.store?.originalArtwork, 'original.', observation, -10);
@@ -119,7 +119,7 @@ function selectArtwork(observations) {
       let preference = 60;
       if (image.type === 'DieselGameBoxTall') { roles = ['portrait']; preference = 100; }
       else if (image.type === 'DieselGameBox') { roles = ['landscape']; preference = 100; }
-      else if (image.type === 'AndroidIcon') { roles = ['icon', 'square']; preference = 100; }
+      else if (image.type === 'AndroidIcon') { roles = ['icon']; preference = 100; }
       else if (image.type === 'DieselGameBoxLogo') { roles = ['logo']; preference = 95; }
       else if (image.type === 'CodeRedemption_340x440') { roles = ['portrait']; preference = 80; }
       add({ url: image.url, type: image.type, roles, width: image.width, height: image.height,

@@ -49,20 +49,26 @@ test('uses Playnite roles for a local game and keeps asset metadata', () => {
     cover: { path: cover, assetId: '2'.repeat(64), contentType: 'image/jpeg', width: 600, height: 800 },
     background: { path: background, assetId: '3'.repeat(64), contentType: 'image/jpeg', width: 1920, height: 620 },
   } })]);
-  expect(artwork).toMatchObject({ iconUrl: icon, squareUrl: icon, portraitUrl: cover, landscapeUrl: background });
+  expect(artwork).toMatchObject({ iconUrl: icon, squareUrl: null, portraitUrl: cover, landscapeUrl: background });
+  expect(artwork.all.find(item => item.url === icon).roles).toEqual(['icon']);
   expect(artwork.all.find(item => item.url === icon).metadata.assetId).toBe('1'.repeat(64));
 });
 
 test('maps Steam and PSN artwork types into explicit roles', () => {
   const steamIcon = 'https://media.steampowered.com/icon.jpg';
+  const steamCommunityIcon = 'https://shared.fastly.steamstatic.com/community-icon.jpg';
   const steamPortrait = 'https://shared.fastly.steamstatic.com/portrait.jpg';
   const steamLandscape = 'https://shared.fastly.steamstatic.com/landscape.jpg';
   const steamArtwork = selectArtwork([observation('steam', 'authoritative', '570', {
     iconUrl: steamIcon,
-    store: { artwork: { verticalCapsule2xUrl: steamPortrait, mainCapsule2xUrl: steamLandscape }, screenshots: {} },
+    store: { artwork: { verticalCapsule2xUrl: steamPortrait, mainCapsule2xUrl: steamLandscape,
+      communityIconUrl: steamCommunityIcon }, screenshots: {} },
   })]);
-  expect(steamArtwork).toMatchObject({ iconUrl: steamIcon, squareUrl: steamIcon,
+  expect(steamArtwork).toMatchObject({ iconUrl: steamIcon, squareUrl: null,
     portraitUrl: steamPortrait, landscapeUrl: steamLandscape });
+  expect(steamArtwork.all.find(item => item.type === 'appIcon').roles).toEqual(['icon']);
+  expect(steamArtwork.all.find(item => item.type === 'communityIconUrl').roles).toEqual(['icon']);
+  expect(steamArtwork.all.map(item => item.url)).toEqual(expect.arrayContaining([steamIcon, steamCommunityIcon]));
 
   const psnPortrait = 'https://image.api.playstation.com/portrait.jpg';
   const psnLandscape = 'https://image.api.playstation.com/landscape.jpg';

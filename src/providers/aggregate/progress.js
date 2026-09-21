@@ -33,13 +33,19 @@ function detail(service, providerGameId) {
 }
 
 function steamUnlock(row, appId, setId) {
+  const firstIcon = (...values) => values.find(value => typeof value === 'string' && value) || null;
+  const imageUrl = row.achieved === true
+    ? firstIcon(row.unlockedIconUrl, row.iconUrl)
+    : row.achieved === false
+      ? firstIcon(row.lockedIconUrl, row.iconUrl)
+      : firstIcon(row.iconUrl, row.unlockedIconUrl, row.lockedIconUrl);
   return {
     id: `steam:${appId}:achievement:${encodeURIComponent(row.apiName)}`,
     setId,
     providerUnlockId: row.apiName,
     name: row.name || 'Unnamed achievement',
     description: row.description ?? null,
-    imageUrl: row.imageUrl ?? null,
+    imageUrl,
     unlocked: typeof row.achieved === 'boolean' ? row.achieved : null,
     unlockedAt: row.unlockedAt ?? null,
     rarityPercent: row.globalPercent ?? null,
