@@ -122,7 +122,7 @@ Every canonical game and copy returns:
 }
 ```
 
-The selected role fields are independent. A provider can supply landscape and portrait art without supplying a square image or icon, in which case the missing fields remain null. `all` retains every distinct safe artwork URL across authoritative and helper observations. It also includes non-selected logos, backgrounds, character layers, and screenshots. Identical URLs are deduplicated while `sources` preserves every contributing record.
+The selected role fields are independent. A provider can supply landscape and portrait art without supplying a square image or icon, in which case the missing fields remain null. `squareUrl` is reserved for genuine square promotional artwork suitable for a large tile. Steam application and community icons, Playnite application icons, and Epic Android icons only qualify for `iconUrl`; they never fill `squareUrl`. `all` retains every distinct safe artwork URL across authoritative and helper observations, including these small icons. It also includes non-selected logos, backgrounds, character layers, and screenshots. Identical URLs are deduplicated while `sources` preserves every contributing record.
 
 Selection prefers an authoritative provider observation over a Playnite helper mirror. Within the same authority level, provider-specific semantic types are preferred, followed by their known role and resolution. For an Epic game mirrored in Playnite, Epic `DieselGameBox` becomes `landscapeUrl`, Epic `DieselGameBoxTall` becomes `portraitUrl`, and the Playnite cover and background remain in `all`. A local Playnite game uses its own icon, cover, and background according to their dimensions.
 
@@ -202,6 +202,8 @@ Achievements and trophies are normalized but remain in separate progress sets. T
 ```
 
 `unlocked` is `true`, `false`, or `null`. Null means the provider did not return a reliable player state, so the frontend must not treat it as locked. A set completion percentage is null until every unlock in that set has a known state.
+
+For Steam achievements, `imageUrl` selects the unlocked icon for an earned achievement and the locked icon for a locked achievement, falling back to Steam's current state icon. When the unlock state is unknown, the current state icon is preferred, followed by either available variant.
 
 Regional PSN title records are deduplicated by PSN service and trophy-set ID. The resulting set retains every contributing title ID in `providerGameIds` and every canonical copy reference in `sourceRefs`. Steam and PSN sets are never merged with each other.
 

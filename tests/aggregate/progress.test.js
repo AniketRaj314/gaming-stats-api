@@ -11,9 +11,13 @@ const steamDetail = (status = 'available') => ({ httpStatus: 200, body: {
   status: 'ready', stale: false, lastSuccessAt: '2026-09-21T00:00:00.000Z', achievementStatus: status,
   achievements: status === 'available' ? [
     { apiName: 'FIRST', name: 'First', description: 'Do the first thing', achieved: true,
-      unlockedAt: '2026-01-01T00:00:00.000Z', iconUrl: 'https://cdn.example/first.jpg', globalPercent: 12.5 },
+      unlockedAt: '2026-01-01T00:00:00.000Z', iconUrl: 'https://cdn.example/first-current.jpg',
+      unlockedIconUrl: 'https://cdn.example/first-unlocked.jpg', lockedIconUrl: 'https://cdn.example/first-locked.jpg',
+      globalPercent: 12.5 },
     { apiName: 'SECOND', name: 'Second', description: null, achieved: false,
-      unlockedAt: null, iconUrl: 'https://cdn.example/second.jpg', globalPercent: 40.6 },
+      unlockedAt: null, iconUrl: 'https://cdn.example/second-current.jpg',
+      unlockedIconUrl: 'https://cdn.example/second-unlocked.jpg', lockedIconUrl: 'https://cdn.example/second-locked.jpg',
+      globalPercent: 40.6 },
   ] : [],
 } });
 
@@ -36,6 +40,32 @@ test('returns a complete Steam-only achievement set', () => {
     rarestUnlock: { id: 'steam:570:achievement:FIRST', source: 'steam', rarityPercent: 12.5 } });
   expect(progress.sets[0]).toMatchObject({ source: 'steam', kind: 'achievement',
     summary: { earned: 1, available: 2, known: 2, completionPercent: 50 } });
+  expect(progress.sets[0].unlocks).toEqual(expect.arrayContaining([
+    expect.objectContaining({ providerUnlockId: 'FIRST', unlocked: true,
+      imageUrl: 'https://cdn.example/first-unlocked.jpg' }),
+    expect.objectContaining({ providerUnlockId: 'SECOND', unlocked: false,
+      imageUrl: 'https://cdn.example/second-locked.jpg' }),
+  ]));
+});
+
+test('falls back to the current Steam icon when the state-specific icon is missing', () => {
+  const detail = steamDetail();
+  detail.body.achievements = [
+    { apiName: 'UNLOCKED', name: 'Unlocked', achieved: true, unlockedIconUrl: null,
+      lockedIconUrl: 'https://cdn.example/unlocked-locked.jpg', iconUrl: 'https://cdn.example/unlocked-current.jpg' },
+    { apiName: 'LOCKED', name: 'Locked', achieved: false, unlockedIconUrl: 'https://cdn.example/locked-unlocked.jpg',
+      lockedIconUrl: null, iconUrl: 'https://cdn.example/locked-current.jpg' },
+    { apiName: 'UNKNOWN', name: 'Unknown', achieved: null, unlockedIconUrl: 'https://cdn.example/unknown-unlocked.jpg',
+      lockedIconUrl: 'https://cdn.example/unknown-locked.jpg', iconUrl: 'https://cdn.example/unknown-current.jpg' },
+  ];
+  const progress = buildProgress(game([copy('steam-copy', 'multi-platform', [observation('steam', '570')])]), {
+    steamService: service({ 570: detail }),
+  });
+  expect(Object.fromEntries(progress.sets[0].unlocks.map(item => [item.providerUnlockId, item.imageUrl]))).toEqual({
+    LOCKED: 'https://cdn.example/locked-current.jpg',
+    UNKNOWN: 'https://cdn.example/unknown-current.jpg',
+    UNLOCKED: 'https://cdn.example/unlocked-current.jpg',
+  });
 });
 
 test('does not turn an unknown unlock state into a locked unlock', () => {

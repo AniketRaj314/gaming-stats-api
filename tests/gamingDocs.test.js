@@ -44,7 +44,7 @@ test('Aggregate guides cover identity, overlap, concurrent sessions, and fronten
       'config/game-identities.json', 'portraitUrl', 'landscapeUrl', 'squareUrl', 'artwork.all',
       'helper mirrors', 'helperFor', 'cosmetic trademark', 'heartbeats alone never produce an online state', 'completionCalculation',
       'Regional PSN', 'Steam achievement', 'PlayStation trophy', 'partial-provider-failure',
-      'no-unlock-data', 'HTTP 401', 'HTTP 503']) {
+      'no-unlock-data', 'genuine square promotional artwork', 'state-aware', 'HTTP 401', 'HTTP 503']) {
       expect(res.text).toContain(text);
     }
   }

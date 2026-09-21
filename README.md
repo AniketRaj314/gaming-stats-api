@@ -2,7 +2,7 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.8.1** provides a frontend-ready aggregate library, authoritative
+Version **3.8.2** provides a frontend-ready aggregate library, authoritative
 canonical game pages, and multi-session
 now-playing API over the cached provider snapshots, with explicit portrait,
 landscape, square, and icon artwork roles plus every retained source image. It

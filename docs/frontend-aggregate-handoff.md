@@ -1,6 +1,6 @@
 # Frontend handoff: aggregate gaming data
 
-Use the aggregate API for cross-provider library presentation and live activity. Continue using raw provider endpoints for provider-specific screens such as Steam achievements, PSN trophies, Valorant competitive stats, or the complete provider metadata payload.
+Use the aggregate API for cross-provider library presentation, canonical game progress, and live activity. Continue using raw provider endpoints only for specialized data absent from the aggregate contract, such as Valorant competitive stats or the complete provider metadata payload.
 
 ## Authentication
 
@@ -121,6 +121,8 @@ Use the field that matches the component:
 
 Do not read `coverUrl` or `backgroundUrl`; those generic fields are not part of the contract. Do not reinterpret portrait artwork as landscape artwork. A role can be null because providers do not guarantee every shape for every game.
 
+Treat `squareUrl: null` as no suitable large square promotional artwork. Do not substitute `iconUrl` into a large square card. Steam application and community icons, Playnite application icons, and Epic Android icons are retained in `artwork.all` but only qualify for `iconUrl`.
+
 `all` contains every distinct safe image supplied by the contributing providers, including images not selected for the four primary roles. This includes alternate capsules, logos, backgrounds, character layers, and screenshots. Identical URLs appear once, with every contributing source listed under `sources`.
 
 Authoritative provider artwork wins over a helper mirror for the selected fields. An Epic game mirrored through Playnite therefore uses Epic landscape and portrait art while retaining the Playnite images in `all`. Local Playnite games use their Playnite artwork directly.
@@ -236,6 +238,8 @@ type AggregateProgress = {
 ```
 
 Render one progress block for every item in `progress.sets`. Steam achievements and PlayStation trophies use the same unlock fields, but remain separate sets. There is deliberately no combined completion percentage. Regional PSN title records that resolve to the same trophy set appear once.
+
+For Steam unlocks, `imageUrl` is already state-aware. Earned achievements prefer the unlocked icon, locked achievements prefer the locked icon, and unknown states use the best available provider icon. The frontend should render this normalized field rather than reconstructing an icon choice from provider data.
 
 Use `progress.rarestUnlock` for the page-level rarest section. It is the lowest reported source-population percentage among earned unlocks. Use each set's `summary.completionPercent` for progress display. If it is null, some unlock states are unknown.
 
