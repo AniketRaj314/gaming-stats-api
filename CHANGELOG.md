@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.8.0 - 2026-09-21
+
+- Make `GET /aggregate/games/:canonicalGameId` the authoritative game-page
+  response with canonical playtime, artwork, game-specific activity, and cached
+  progress details.
+- Normalize Steam achievements and PlayStation trophies into a shared unlock
+  contract while keeping their progress sets separate.
+- Deduplicate regional PSN records by service and trophy-set ID while retaining
+  every contributing provider title and canonical copy reference.
+- Select one page-level rarest earned unlock across available progress sets and
+  document that provider rarity percentages describe different populations.
+- Preserve healthy progress sets during partial provider failures and report
+  unsupported unlock providers without fabricating progress.
+- Add regression coverage and frontend examples for Steam-only, PSN-only,
+  multi-provider, partial-failure, and no-unlock games.
+
 ## 3.7.2 - 2026-09-20
 
 - Treat fresh provider or Playnite availability without a current game as

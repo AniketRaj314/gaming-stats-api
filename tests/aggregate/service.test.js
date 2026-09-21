@@ -6,11 +6,13 @@ const ready = body => ({ status: 'ready', stale: false, lastSuccessAt: '2026-09-
 function service({ steamLibrary = ready({ games: [] }), steamProfile = ready({ personaState: 'online', currentGame: null }),
   psnLibrary = ready({ games: [] }), psnPresence = ready({ activity: 'idle', online: false, games: [] }),
   epicLibrary = ready({ games: [] }), playniteLibrary = ready({ games: [] }),
-  playnitePresence = ready({ state: 'online', currentGame: null }), snapshot = null } = {}) {
+  playnitePresence = ready({ state: 'online', currentGame: null }), steamGames = {}, psnGames = {}, snapshot = null } = {}) {
   return createAggregateService({
     now: () => NOW,
-    steamService: { read: resource => resource === 'profile' ? steamProfile : steamLibrary },
-    psnService: { read: resource => resource === 'presence' ? psnPresence : psnLibrary },
+    steamService: { read: resource => resource === 'profile' ? steamProfile : steamLibrary,
+      game: id => steamGames[id] || { httpStatus: 404, body: {} } },
+    psnService: { read: resource => resource === 'presence' ? psnPresence : psnLibrary,
+      game: id => psnGames[id] || { httpStatus: 404, body: {} } },
     epicService: { read: () => epicLibrary },
     playniteService: { library: () => playniteLibrary, presence: () => playnitePresence },
     trackedUsernames: snapshot ? ['Spider31415#6921'] : [],
@@ -151,4 +153,38 @@ test('does not treat provider or Playnite availability as owner activity', () =>
     playnitePresence: ready({ state: 'online', currentGame: null }),
   });
   expect(aggregate.nowPlaying()).toMatchObject({ state: 'offline', sessionCount: 0, sessions: [] });
+});
+
+test('canonical game detail includes authoritative playtime, progress, and game-specific activity', () => {
+  const steamGame = { appId: 570, providerGameId: '570', name: 'Dota 2', playtimeMinutes: 600,
+    playtimeWindowsMinutes: 500, playtimeMacMinutes: 100, playtimeLinuxMinutes: 0 };
+  const aggregate = service({
+    steamLibrary: ready({ games: [steamGame] }),
+    steamProfile: ready({ personaState: 'online', currentGame: steamGame }),
+    epicLibrary: { status: 'unavailable' },
+    steamGames: { 570: { httpStatus: 200, body: { status: 'ready', achievementStatus: 'available',
+      achievements: [{ apiName: 'FIRST', name: 'First', description: null, iconUrl: null, achieved: true,
+        unlockedAt: '2026-01-01T00:00:00.000Z', globalPercent: 12.5 }] } } },
+  });
+  const result = aggregate.game('steam-570');
+  expect(result.httpStatus).toBe(200);
+  expect(result.body.status).toBe('ready');
+  expect(result.body.game.playtime).toMatchObject({ status: 'known', knownSeconds: 36000 });
+  expect(result.body.activity).toMatchObject({ state: 'playing', sessionCount: 1 });
+  expect(result.body.progress).toMatchObject({ status: 'available', setCount: 1, unlockCount: 1,
+    rarestUnlock: { source: 'steam', rarityPercent: 12.5 } });
+});
+
+test('canonical game detail remains usable during a partial progress failure', () => {
+  const aggregate = service({
+    steamLibrary: ready({ games: [{ appId: 291550, providerGameId: '291550', name: 'Brawlhalla', playtimeMinutes: 10 }] }),
+    psnLibrary: ready({ games: [{ providerGameId: 'CUSA05330_00', conceptId: '203106', name: 'Brawlhalla',
+      platform: 'PS4', playtimeMinutes: 20 }] }),
+    steamGames: { 291550: { httpStatus: 200, body: { status: 'ready', achievementStatus: 'available',
+      achievements: [{ apiName: 'WIN', name: 'Win', achieved: true, globalPercent: 20 }] } } },
+    psnGames: { CUSA05330_00: { httpStatus: 503, body: { status: 'unavailable' } } },
+  });
+  const result = aggregate.game('brawlhalla');
+  expect(result).toMatchObject({ httpStatus: 200, body: { status: 'partial',
+    progress: { status: 'partial', setCount: 1, sets: [{ source: 'steam' }] } } });
 });

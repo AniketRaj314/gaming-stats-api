@@ -168,20 +168,88 @@ type AggregateNowPlaying = {
 
 ## Detail route
 
-Use the canonical ID from the library or now-playing response:
+Use the canonical ID from the library or now-playing response for every game page:
 
 ```http
 GET /aggregate/games/marvels-spider-man
 ```
 
-A missing ID returns HTTP 404. Provider game IDs are not valid substitutes for this route unless the aggregate response uses that exact string as its canonical ID.
+This is the authoritative page response. It includes canonical `game.playtime`, aggregate artwork, game-specific `activity`, and normalized `progress`. Never add provider playtime observations in frontend code.
+
+Keep progress sets separate:
+
+```ts
+type AggregateUnlock = {
+  id: string;
+  setId: string;
+  providerUnlockId: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  unlocked: boolean | null;
+  unlockedAt: string | null;
+  rarityPercent: number | null;
+  kind: "achievement" | "trophy";
+  grade: "bronze" | "silver" | "gold" | "platinum" | null;
+  source: "steam" | "psn";
+  hidden: boolean;
+};
+
+type AggregateProgress = {
+  status: "available" | "partial" | "pending" | "unsupported" | "unavailable";
+  completionCalculation: "reported-per-progress-set-no-cross-source-merge";
+  setCount: number;
+  unlockCount: number;
+  rarestUnlock: AggregateUnlock | null;
+  sets: Array<{
+    id: string;
+    source: "steam" | "psn";
+    kind: "achievement" | "trophy";
+    name: string;
+    editionId: string;
+    copyId: string;
+    platform: string;
+    providerGameIds: string[];
+    sourceRefs: Array<{ providerGameId: string; editionId: string; copyId: string }>;
+    status: "available" | "stale";
+    summary: {
+      earned: number;
+      available: number;
+      known: number;
+      completionPercent: number | null;
+    };
+    rarestUnlock: AggregateUnlock | null;
+    unlocks: AggregateUnlock[];
+  }>;
+  sources: Array<{
+    source: "steam" | "psn" | "epic" | "playnite" | "valorant";
+    providerGameIds: string[];
+    editionId: string;
+    copyId: string;
+    status: "available" | "stale" | "pending" | "private" | "unsupported" | "unavailable" | "error";
+    reason: string | null;
+    lastSuccessAt: string | null;
+  }>;
+};
+```
+
+Render one progress block for every item in `progress.sets`. Steam achievements and PlayStation trophies use the same unlock fields, but remain separate sets. There is deliberately no combined completion percentage. Regional PSN title records that resolve to the same trophy set appear once.
+
+Use `progress.rarestUnlock` for the page-level rarest section. It is the lowest reported source-population percentage among earned unlocks. Use each set's `summary.completionPercent` for progress display. If it is null, some unlock states are unknown.
+
+If top-level `status` or `progress.status` is `partial`, render the healthy sets and use `progress.sources` to identify unavailable data. Epic, Playnite, and Valorant normally report `unsupported` for unlocks rather than an error.
+An unrelated provider failure does not make this game partial. A configured provider match that belongs to this canonical game does.
+
+A missing canonical ID returns HTTP 404. Provider game IDs are not substitutes for the canonical route ID.
 
 ## Migration sequence
 
 1. Add a server-side client for `/aggregate/now-playing`.
 2. Replace provider-by-provider live checks with the returned `sessions` array.
 3. Use `artwork.landscapeUrl` for the existing wide game cards. Do not use `coverUrl` or `backgroundUrl`.
-4. Add `/aggregate/library` for combined library views.
-5. Keep raw Steam, PSN, Epic, Playnite, and Valorant calls for specialized detail screens.
-6. Log `sources`, `possibleMatches`, and playtime selection rules during initial rollout so mapping gaps are visible.
-7. Report an unconfirmed match for backend curation instead of merging titles in frontend code.
+4. Route every library card to `/gaming/games/:canonicalGameId`.
+5. Fetch `/aggregate/games/:canonicalGameId` for canonical playtime, artwork, activity, and progress.
+6. Remove provider-specific game detail buttons and Editions and Copies navigation. Editions and copies remain provenance within the response.
+7. Render each `progress.sets` item separately and use `progress.rarestUnlock` for the page-level rarest section.
+8. Keep raw provider calls only for specialized data that is not yet represented by the aggregate contract, such as Valorant competitive statistics.
+9. Report an unconfirmed match for backend curation instead of merging titles in frontend code.

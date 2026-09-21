@@ -37,7 +37,7 @@ them.
 | Epic | Claimed PC base-game library, complete safe typed catalog artwork metadata, playtime | Artwork audited through 3.5.0 against the current owner response; broader non-media catalog field review remains open |
 | Valorant | Profile/card art, rank icons, agent/map performance with official static artwork, and total playtime | Artwork audited through 3.5.0 from the public static-data schemas without a live player refresh |
 | Playnite | Complete selected Playnite library, source identifiers, tracked playtime, launch count, install/activity state, catalog metadata, local icon/cover/background files, and short-lived now-playing presence | Implemented in 3.6.0 and verified against the first owner snapshots in 3.7.0 |
-| Aggregate | Canonical games, editions, independently played copies, playtime selection provenance, complete role-based artwork, source freshness, and concurrent current sessions | Implemented in 3.7.0 and artwork-audited against live owner snapshots in 3.7.1 |
+| Aggregate | Canonical games, editions, independently played copies, playtime selection provenance, complete role-based artwork, source freshness, concurrent current sessions, and per-game Steam achievement and PSN trophy sets | Implemented in 3.7.0, artwork-audited in 3.7.1, and expanded with canonical game-page progress in 3.8.0 |
 
 ## Aggregate 3.7.0 coverage
 
@@ -71,6 +71,12 @@ that produces live owner activity. Fresh Steam persona availability, PSN idle
 presence, and Playnite heartbeats with no current game resolve to `offline`.
 When no fresh presence source exists, the state remains `unknown` rather than
 claiming that the owner is offline.
+
+Canonical game details were expanded in 3.8.0. Steam achievements and PSN
+trophies use one normalized unlock shape but remain in separate progress sets.
+Regional PSN records are deduplicated by service and trophy-set ID. Progress
+reads cached detail snapshots only, preserves healthy sets during partial
+failures, and never changes canonical playtime selection.
 
 ## Playnite 3.6.0 coverage
 
