@@ -9,7 +9,7 @@ All data routes require the shared `X-API-Key` header and return `Cache-Control:
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/aggregate/library` | Canonical games with editions, copies, provider observations, artwork, and deduplicated playtime |
-| `GET` | `/aggregate/games/:canonicalGameId` | One canonical game from the current aggregate library |
+| `GET` | `/aggregate/games/:canonicalGameId` | Authoritative canonical game page with playtime, artwork, activity, and progress |
 | `GET` | `/aggregate/now-playing` | All fresh current play sessions across devices |
 | `GET` | `/aggregate/docs` | Public human-readable reference |
 | `GET` | `/aggregate/llms.txt` | Public machine-readable reference |
@@ -125,6 +125,137 @@ The selected role fields are independent. A provider can supply landscape and po
 Selection prefers an authoritative provider observation over a Playnite helper mirror. Within the same authority level, provider-specific semantic types are preferred, followed by their known role and resolution. For an Epic game mirrored in Playnite, Epic `DieselGameBox` becomes `landscapeUrl`, Epic `DieselGameBoxTall` becomes `portraitUrl`, and the Playnite cover and background remain in `all`. A local Playnite game uses its own icon, cover, and background according to their dimensions.
 
 The aggregate contract does not return generic `coverUrl` or `backgroundUrl` aliases. Frontends must choose the field that matches the layout.
+
+## Canonical game page
+
+`GET /aggregate/games/:canonicalGameId` is the authoritative game-page response. It returns the existing canonical `game`, plus `activity` and `progress`.
+
+Use `game.playtime` as the only canonical playtime value. Do not add copy observations or provider playtime in the frontend.
+
+```json
+{
+  "status": "ready",
+  "game": {
+    "id": "brawlhalla",
+    "name": "Brawlhalla",
+    "playtime": { "status": "known", "knownSeconds": 36000, "unknownCopyCount": 0 },
+    "artwork": {
+      "portraitUrl": "https://cdn.example/portrait.jpg",
+      "landscapeUrl": "https://cdn.example/landscape.jpg",
+      "squareUrl": null,
+      "iconUrl": "https://cdn.example/icon.jpg",
+      "all": []
+    },
+    "editions": []
+  },
+  "activity": {
+    "state": "offline",
+    "sessionCount": 0,
+    "sessions": []
+  },
+  "progress": {
+    "status": "available",
+    "completionCalculation": "reported-per-progress-set-no-cross-source-merge",
+    "setCount": 2,
+    "unlockCount": 103,
+    "rarestUnlock": {
+      "id": "psn:trophy2:NPWR12345_00:trophy:1",
+      "setId": "psn:trophy2:NPWR12345_00",
+      "source": "psn",
+      "kind": "trophy",
+      "grade": "gold",
+      "name": "Rare trophy",
+      "description": null,
+      "imageUrl": "https://image.api.playstation.com/trophy.png",
+      "unlocked": true,
+      "unlockedAt": "2026-01-01T00:00:00.000Z",
+      "rarityPercent": 2.5
+    },
+    "sets": [],
+    "sources": []
+  }
+}
+```
+
+Achievements and trophies are normalized but remain in separate progress sets. The API does not merge similarly named Steam achievements and PlayStation trophies and does not return a combined completion percentage. Each set has its own summary:
+
+```json
+{
+  "id": "steam:570:achievements",
+  "source": "steam",
+  "kind": "achievement",
+  "name": "Steam achievements",
+  "editionId": "standard",
+  "copyId": "steam-570:standard:steam",
+  "platform": "multi-platform",
+  "providerGameIds": ["570"],
+  "sourceRefs": [
+    { "providerGameId": "570", "editionId": "standard", "copyId": "steam-570:standard:steam" }
+  ],
+  "status": "available",
+  "summary": { "earned": 1, "available": 2, "known": 2, "completionPercent": 50 },
+  "rarestUnlock": null,
+  "unlocks": []
+}
+```
+
+`unlocked` is `true`, `false`, or `null`. Null means the provider did not return a reliable player state, so the frontend must not treat it as locked. A set completion percentage is null until every unlock in that set has a known state.
+
+Regional PSN title records are deduplicated by PSN service and trophy-set ID. The resulting set retains every contributing title ID in `providerGameIds` and every canonical copy reference in `sourceRefs`. Steam and PSN sets are never merged with each other.
+
+`progress.rarestUnlock` compares earned unlocks with known rarity and selects the lowest reported percentage. Steam and PSN percentages describe different source populations, so this is a lowest reported provider rate rather than a statistical comparison of the two networks.
+
+The five expected response cases are:
+
+```json
+[
+  {
+    "case": "steam-only",
+    "progress": { "status": "available", "setCount": 1, "sets": [{ "source": "steam", "kind": "achievement" }] }
+  },
+  {
+    "case": "psn-only",
+    "progress": { "status": "available", "setCount": 1, "sets": [{ "source": "psn", "kind": "trophy" }] }
+  },
+  {
+    "case": "matched-across-providers",
+    "progress": {
+      "status": "available",
+      "setCount": 2,
+      "sets": [
+        { "source": "psn", "kind": "trophy", "summary": { "earned": 10, "available": 20, "known": 20, "completionPercent": 50 } },
+        { "source": "steam", "kind": "achievement", "summary": { "earned": 30, "available": 50, "known": 50, "completionPercent": 60 } }
+      ]
+    }
+  },
+  {
+    "case": "partial-provider-failure",
+    "status": "partial",
+    "progress": {
+      "status": "partial",
+      "sets": [{ "source": "steam", "kind": "achievement" }],
+      "sources": [
+        { "source": "steam", "providerGameIds": ["570"], "status": "available" },
+        { "source": "psn", "providerGameIds": ["PPSA12345_00"], "status": "unavailable" }
+      ]
+    }
+  },
+  {
+    "case": "no-unlock-data",
+    "progress": {
+      "status": "unsupported",
+      "setCount": 0,
+      "unlockCount": 0,
+      "rarestUnlock": null,
+      "sets": [],
+      "sources": [{ "source": "epic", "providerGameIds": ["epic-id"], "status": "unsupported" }]
+    }
+  }
+]
+```
+
+The route reads cached provider details only. It never contacts Steam or PlayStation during the request. A detail failure produces HTTP 200 with top-level `status: "partial"`, the healthy progress sets remain usable, and the failing source is described in `progress.sources`.
+Failures from providers unrelated to the requested canonical game do not lower its status. A configured matched source that is missing because its library snapshot is unavailable is reported as unavailable for that game.
 
 ## Now playing contract
 

@@ -42,14 +42,19 @@ test('Aggregate guides cover identity, overlap, concurrent sessions, and fronten
     for (const text of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/:canonicalGameId',
       'sessions', 'primarySource', 'detectedBy', 'possibleMatches', 'unknown', 'Regional',
       'config/game-identities.json', 'portraitUrl', 'landscapeUrl', 'squareUrl', 'artwork.all',
-      'helper mirrors', 'heartbeats alone never produce an online state', 'HTTP 401', 'HTTP 503']) {
+      'helper mirrors', 'heartbeats alone never produce an online state', 'completionCalculation',
+      'Regional PSN', 'Steam achievement', 'PlayStation trophy', 'partial-provider-failure',
+      'no-unlock-data', 'HTTP 401', 'HTTP 503']) {
       expect(res.text).toContain(text);
     }
   }
   const txt = (await request(app).get('/aggregate/llms.txt')).text;
   const examples = [...txt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]));
-  expect(examples).toHaveLength(1);
+  expect(examples).toHaveLength(2);
   expect(examples[0]).toMatchObject({ schemaVersion: 1, provider: 'aggregate', state: 'playing', sessionCount: 2 });
+  expect(examples[1].map(item => item.case)).toEqual([
+    'steam-only', 'psn-only', 'matched-steam-and-psn', 'partial-provider-failure', 'no-unlock-data',
+  ]);
   expect((await request(app).get('/llms.txt')).text).toContain('(/aggregate/llms.txt)');
 });
 

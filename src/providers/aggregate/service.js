@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { buildRegistry } = require('./identities');
 const { selectArtwork } = require('./artwork');
+const { buildProgress } = require('./progress');
 
 const READY = new Set(['ready', 'stale']);
 const ACTIVE = new Set(['ready']);
@@ -322,11 +323,31 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
   }
 
   function game(id) {
-    const library = buildLibrary();
+    const input = snapshots();
+    const library = buildLibrary(input);
     const found = library.games.find(item => item.id === id);
     if (!found) return { httpStatus: 404, body: { error: 'Canonical game not found' } };
+    const presence = nowPlaying(input);
+    const sessions = presence.sessions.filter(item => item.game.id === found.id);
+    const activity = {
+      state: sessions.length ? 'playing' : presence.state === 'unknown' ? 'unknown' : 'offline',
+      sessionCount: sessions.length,
+      sessions,
+      sources: presence.sources,
+    };
+    const expectedWork = registry.works.get(found.id);
+    const progress = buildProgress(found, { steamService, psnService, expectedWork, providerStatuses: library.sources });
+    const incompleteProgress = ['partial', 'pending', 'unavailable'].includes(progress.status);
+    const relatedProviders = new Set(found.editions.flatMap(edition => edition.copies)
+      .flatMap(copy => copy.observations).map(item => item.provider));
+    for (const edition of expectedWork?.editions || []) for (const reference of edition.references || []) {
+      relatedProviders.add(reference.provider);
+    }
+    const incompleteSource = [...relatedProviders].some(provider => !READY.has(library.sources[provider]?.status));
+    const status = !incompleteProgress && !incompleteSource && activity.state !== 'unknown' ? 'ready' : 'partial';
     return { httpStatus: 200, body: { schemaVersion: library.schemaVersion, provider: library.provider,
-      accountRef: library.accountRef, status: library.status, generatedAt: library.generatedAt, sources: library.sources, game: found } };
+      accountRef: library.accountRef, status, generatedAt: library.generatedAt, sources: library.sources,
+      game: found, activity, progress } };
   }
 
   return { library: () => buildLibrary(), nowPlaying, game, _buildLibrary: buildLibrary };
