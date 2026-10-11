@@ -113,13 +113,27 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
     const valorantObservations = by('valorant');
     const valorant = valorantObservations.map(item => ({ item, seconds: valorantSeconds(item.data.totalPlaytime) }))
       .find(value => value.seconds !== null);
-    if (valorant) return { status: 'known', seconds: valorant.seconds, precision: 'hour-display',
-      selectedFrom: 'valorant', rule: 'authoritative-lifetime', excluded: by('playnite').map(item => ({ provider: item.provider,
-        providerGameId: item.providerGameId, reason: 'subset-of-valorant-lifetime' })) };
-    if (valorantObservations.length) return { status: 'unknown', seconds: null, precision: null,
-      selectedFrom: null, rule: 'valorant-lifetime-unavailable', excluded: by('playnite').map(item => ({
-        provider: item.provider, providerGameId: item.providerGameId, reason: 'subset-of-unknown-valorant-lifetime',
-      })) };
+    if (copy.id.startsWith('valorant:')) {
+      const playniteValues = by('playnite').map(item => ({ item, seconds: item.data.playtimeSeconds }))
+        .filter(value => Number.isSafeInteger(value.seconds) && value.seconds >= 0)
+        .sort((a, b) => b.seconds - a.seconds);
+      const playnite = playniteValues[0];
+      if (playnite) return { status: 'known', seconds: playnite.seconds, precision: 'second', selectedFrom: 'playnite',
+        rule: 'playnite-complete-lifetime-including-backlog', excluded: [
+          ...valorantObservations.map(item => ({ provider: item.provider, providerGameId: item.providerGameId,
+            reason: 'lower-priority-custom-valorant-lifetime' })),
+          ...playniteValues.slice(1).map(value => ({ provider: value.item.provider,
+            providerGameId: value.item.providerGameId, reason: 'overlapping-playnite-valorant-lifetime' })),
+        ] };
+      if (valorant) return { status: 'known', seconds: valorant.seconds, precision: 'hour-display',
+        selectedFrom: 'valorant', rule: 'custom-valorant-lifetime-fallback', excluded: by('playnite').map(item => ({
+          provider: item.provider, providerGameId: item.providerGameId, reason: 'playnite-lifetime-unavailable',
+        })) };
+      return { status: 'unknown', seconds: null, precision: null,
+        selectedFrom: null, rule: 'valorant-lifetime-unavailable', excluded: by('playnite').map(item => ({
+          provider: item.provider, providerGameId: item.providerGameId, reason: 'playnite-lifetime-unavailable',
+        })) };
+    }
 
     const steam = by('steam')[0];
     if (steam) {

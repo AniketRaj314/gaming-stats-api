@@ -152,17 +152,38 @@ test('does not turn an entirely unknown game into a known zero work total', () =
   expect(game.playtime).toEqual({ status: 'unknown', knownSeconds: 0, unknownCopyCount: 1 });
 });
 
-test('uses the custom Valorant lifetime and excludes the Playnite subset', () => {
+test('uses the complete Playnite Valorant lifetime and retains custom hours as fallback provenance', () => {
   const aggregate = service({
     playniteLibrary: ready({ games: [{ playniteId: 'e14e27a4-50fe-4d86-9c44-03a57e9c4f65',
       providerGameId: 'local', source: { name: null }, name: 'VALORANT', playtimeSeconds: 3600, artwork: {} }] }),
     snapshot: { status: 'ok', lastRefreshedAt: '2026-09-20T00:00:00.000Z', data: { shared: { totalPlaytime: { total: '2,018 hrs' } } } },
   });
   const copy = aggregate.library().games.find(item => item.id === 'valorant').editions[0].copies[0];
-  expect(copy.playtime.seconds).toBe(7_264_800);
-  expect(copy.playtime.selectedFrom).toBe('valorant');
-  expect(copy.playtime.excluded[0].reason).toBe('subset-of-valorant-lifetime');
+  expect(copy.playtime).toMatchObject({ seconds: 3600, precision: 'second', selectedFrom: 'playnite',
+    rule: 'playnite-complete-lifetime-including-backlog' });
+  expect(copy.playtime.excluded[0].reason).toBe('lower-priority-custom-valorant-lifetime');
   expect(copy.observations.find(item => item.provider === 'playnite').role).toBe('presence-helper');
+});
+
+test('accepts a known zero Playnite Valorant lifetime instead of replacing it with custom hours', () => {
+  const aggregate = service({
+    playniteLibrary: ready({ games: [{ playniteId: 'e14e27a4-50fe-4d86-9c44-03a57e9c4f65',
+      providerGameId: 'local', source: { name: null }, name: 'VALORANT', playtimeSeconds: 0, artwork: {} }] }),
+    snapshot: { status: 'ok', lastRefreshedAt: '2026-09-20T00:00:00.000Z',
+      data: { shared: { totalPlaytime: { total: '2,018 hrs' } } } },
+  });
+  const copy = aggregate.library().games.find(item => item.id === 'valorant').editions[0].copies[0];
+  expect(copy.playtime).toMatchObject({ status: 'known', seconds: 0, selectedFrom: 'playnite' });
+});
+
+test('falls back to custom Valorant hours when Playnite lifetime is unavailable', () => {
+  const aggregate = service({
+    snapshot: { status: 'ok', lastRefreshedAt: '2026-09-20T00:00:00.000Z',
+      data: { shared: { totalPlaytime: { total: '2,018 hrs' } } } },
+  });
+  const copy = aggregate.library().games.find(item => item.id === 'valorant').editions[0].copies[0];
+  expect(copy.playtime).toMatchObject({ seconds: 7_264_800, precision: 'hour-display', selectedFrom: 'valorant',
+    rule: 'custom-valorant-lifetime-fallback' });
 });
 
 test('suggests an exact title match without silently merging unconfirmed providers', () => {

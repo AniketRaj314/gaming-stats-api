@@ -75,10 +75,12 @@ The backend already handles these overlap rules:
 
 - Steam total versus its Windows, macOS, Linux, Deck, and disconnected fields.
 - Direct Epic versus its Playnite mirror.
-- Custom Valorant lifetime versus Playnite tracking.
+- Complete Playnite Valorant lifetime versus the lower-precision custom Valorant fallback.
 - Regional PSN title records.
 
 The frontend must not add `observations` itself. Use the computed playtime fields.
+
+For Valorant, the configured Playnite total includes backlog hours and tracked sessions, so the aggregate copy normally returns `selectedFrom: "playnite"`, `precision: "second"`, and `rule: "playnite-complete-lifetime-including-backlog"`. The custom Valorant total remains in `observations` and is selected only when Playnite lifetime is unavailable.
 
 ## Artwork
 
