@@ -74,7 +74,7 @@ The service only adds playtime observations that represent independent activity:
 - A Playnite Steam observation is a helper mirror and is not added to direct Steam lifetime.
 - Direct Epic playtime is authoritative for an Epic copy. Its Playnite observation is retained but not added.
 - When Epic playtime is unknown, a positive Playnite value can be used as a fallback. Playnite zero does not convert unknown Epic playtime into known zero.
-- Custom Valorant lifetime is authoritative. Playnite can supply live activity, but its subset of tracked sessions is not added.
+- Playnite's Valorant lifetime is authoritative because the configured library value includes manually supplied backlog hours plus tracked sessions. The custom Valorant total remains a lower-precision fallback when Playnite lifetime is unavailable. The two observations are never added.
 - Regional PSN title IDs grouped into one platform copy use the largest observed playtime. The raw records remain in `observations`.
 - Independent storefront and platform copies can be summed inside an edition or work.
 
