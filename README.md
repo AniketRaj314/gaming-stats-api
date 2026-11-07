@@ -2,7 +2,7 @@
 
 A reusable, self-hostable gaming stats API, evolving from Valorant Stats API to support multiple games and platforms.
 
-Version **3.8.3** provides a frontend-ready aggregate library, authoritative
+Version **3.9.0** provides a frontend-ready aggregate library, authoritative
 canonical game pages, and multi-session
 now-playing API over the cached provider snapshots, with explicit portrait,
 landscape, square, and icon artwork roles plus every retained source image. It
@@ -17,6 +17,7 @@ during frontend migration.
 | Provider | Routes | Status |
 | --- | --- | --- |
 | Aggregate | `/aggregate/library`, `/aggregate/games/:canonicalGameId`, `/aggregate/now-playing` | Derived from cached providers |
+| Miscrits | `/custom/miscrits/*` | Core integration, guided setup and startup/manual refresh; disabled by default |
 | Valorant | `/custom/valorant/*`, compatibility alias `/valorant/*` | Live |
 | PSN | `/psn/library`, `/psn/summary`, `/psn/presence`, `/psn/games/:titleId` | Live; opt-in for other installations |
 | Steam | `/steam/profile`, `/steam/library`, `/steam/recent`, `/steam/badges`, `/steam/games/:appId` | Live; opt-in for other installations |
@@ -281,6 +282,10 @@ now-playing presence even when its direct provider lacks those fields. The
 snapshot remains readable while the PC is off, and presence expires to offline.
 See [docs/playnite.md](docs/playnite.md) for installation, security, data fields,
 credential rotation, verification, and recovery.
+
+## Miscrits core integration
+
+See the [Miscrits setup and API guide](docs/miscrits.md) and [frontend handoff](docs/frontend-miscrits-handoff.md). Run `npm run miscrits:connect` to enter your username and hidden password, then set `ENABLE_MISCRITS=true`. Setup imports the application credential from an existing local game login log when possible, or prompts for it once on a cloud host. The command discovers the account ID, stores credentials encrypted, and fetches the first snapshot. No username/password environment variables are needed. Core account reads join get_player with the cached public species catalog, with evolution artwork and factual derived stats. No targets or gameplay writes are implemented.
 
 ## How Refreshing Works
 

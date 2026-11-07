@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const fs = require('node:fs');
+const path = require('node:path');
 const { version } = require('../../package.json');
 
 const game = {
@@ -293,14 +295,34 @@ function createGamingDocsRouter() {
   const aggregateGuide = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/aggregate.md';
   const frontendHandoff = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/frontend-aggregate-handoff.md';
   const coverage = 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/data-coverage.md';
+  const miscritsGuide = fs.readFileSync(path.join(__dirname, '../../docs/miscrits.md'), 'utf8');
+  const miscritsText = 'Gaming Stats API ' + version + '\n\n' + miscritsGuide;
+  // Keep the operator guide and served documentation on the same contract.
+  const miscritsSections = miscritsGuide.split(/^## /m).map(part => {
+    const [heading, ...lines] = part.split('\n');
+    const examples = [];
+    const text = lines.join('\n').replace(/```\w*\n([\s\S]*?)```/g, (_, code) => {
+      examples.push(code.trim());
+      return '';
+    }).split('\n').filter(line => !/^\|[\s|:-]+\|$/.test(line)).map(line =>
+      line.startsWith('|') ? line.split('|').slice(1, -1).map(cell => cell.trim()).join(': ') : line
+    ).join('\n').replace(/`([^`]+)`/g, '$1').trim();
+    return { title: heading.replace(/^# /, ''), text, code: examples.join('\n\n') };
+  });
+  router.get('/custom/miscrits/llms.txt', (req, res) => res.type('text/plain').send(miscritsText));
+  router.get(['/custom/miscrits', '/custom/miscrits/docs'], (req, res) => res.type('html').send(
+    html('Miscrits API', miscritsSections, [
+      ['All providers', '/docs'], ['llms.txt', '/custom/miscrits/llms.txt'],
+      ['Frontend handoff', 'https://github.com/AniketRaj314/gaming-stats-api/blob/main/docs/frontend-miscrits-handoff.md'],
+    ])));
   const indexSections = [
-    { title: 'Providers', text: 'Aggregate: /aggregate - canonical games, safely deduplicated playtime, and concurrent now-playing sessions assembled from cached providers.\nValorant: /custom/valorant - cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn - cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam - cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic - cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite: /playnite - cached local/launcher library, artwork, tracked playtime, and expiring now-playing presence from the Windows extension.' },
-    { title: 'Documentation', text: '[Aggregate guide](/aggregate/docs)\n[Aggregate machine-readable guide](/aggregate/llms.txt)\n[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Playnite guide](/playnite/docs)\n[Playnite machine-readable guide](/playnite/llms.txt)\n[Aggregate implementation guide](' + aggregateGuide + ')\n[Frontend aggregate handoff](' + frontendHandoff + ')\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')\n[Playnite setup](' + playniteSetup + ')' },
-    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Aggregate, Valorant, PSN, Steam, Epic, and Playnite data require X-API-Key from a server-side consumer. The Playnite Windows extension has a separate upload-only key. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
+    { title: 'Providers', text: 'Miscrits: /custom/miscrits - cached owned creatures, active team, species catalog, card stats and evolution artwork. Supports guided account connection and startup/manual refresh.\nAggregate: /aggregate - canonical games, safely deduplicated playtime, and concurrent now-playing sessions assembled from cached providers.\nValorant: /custom/valorant - cached Riot-player stats. /valorant remains a compatibility alias.\nPSN: /psn - cached played history, trophy summary, presence and game trophies. Requires operator configuration.\nSteam: /steam - cached profile, API-visible library and catalog facts, recent playtime, badges/XP, achievements, rarity, title stats and current players. Requires operator configuration.\nEpic: /epic - cached claimed PC base games, catalog artwork and Epic-reported playtime. Requires an owner connection.\nPlaynite: /playnite - cached local/launcher library, artwork, tracked playtime, and expiring now-playing presence from the Windows extension.' },
+    { title: 'Documentation', text: '[Miscrits guide](/custom/miscrits/docs)\n[Miscrits machine-readable guide](/custom/miscrits/llms.txt)\n[Aggregate guide](/aggregate/docs)\n[Aggregate machine-readable guide](/aggregate/llms.txt)\n[Valorant guide](/custom/valorant/docs)\n[Valorant machine-readable guide](/custom/valorant/llms.txt)\n[PSN guide](/psn/docs)\n[PSN machine-readable guide](/psn/llms.txt)\n[Steam guide](/steam/docs)\n[Steam machine-readable guide](/steam/llms.txt)\n[Epic guide](/epic/docs)\n[Epic machine-readable guide](/epic/llms.txt)\n[Playnite guide](/playnite/docs)\n[Playnite machine-readable guide](/playnite/llms.txt)\n[Aggregate implementation guide](' + aggregateGuide + ')\n[Frontend aggregate handoff](' + frontendHandoff + ')\n[Provider data coverage policy](' + coverage + ')\n[PSN setup and recovery](' + setup + ')\n[Steam setup and operations](' + steamSetup + ')\n[Epic setup and operations](' + epicSetup + ')\n[Playnite setup](' + playniteSetup + ')' },
+    { title: 'Access', text: 'GET /health is public and reports the running release. Documentation is public. Aggregate, Valorant, PSN, Steam, Epic, Playnite, and Miscrits data require X-API-Key from a server-side consumer. The Playnite Windows extension has a separate upload-only key. Requests serve stored snapshots; refresh jobs run independently. See each provider guide for schemas and availability.' },
   ];
   router.get('/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API', indexSections)));
   router.get(['/', '/docs'], (req,res)=>res.type('html').send(html('Gaming Stats API', indexSections.filter(s=>s.title!=='Documentation'), [
-    ['Aggregate docs','/aggregate/docs'],['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['Playnite docs','/playnite/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['Frontend handoff',frontendHandoff],
+    ['Miscrits docs','/custom/miscrits/docs'],['Aggregate docs','/aggregate/docs'],['Valorant docs','/custom/valorant/docs'],['PSN docs','/psn/docs'],['Steam docs','/steam/docs'],['Epic docs','/epic/docs'],['Playnite docs','/playnite/docs'],['llms.txt','/llms.txt'],['Coverage policy',coverage],['Frontend handoff',frontendHandoff],
   ])));
   router.get('/aggregate/llms.txt', (req,res)=>res.type('text/plain').send(markdown('Gaming Stats API: Aggregate', aggregateSections())));
   router.get(['/aggregate','/aggregate/docs'], (req,res)=>res.type('html').send(html('Aggregate API', aggregateSections(), [

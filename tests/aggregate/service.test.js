@@ -3,6 +3,17 @@ const { createAggregateService, normalizedTitle, valorantSeconds } = require('..
 const NOW = Date.parse('2026-09-20T12:30:00.000Z');
 const ready = body => ({ status: 'ready', stale: false, lastSuccessAt: '2026-09-20T12:29:30.000Z', ...body });
 
+test('advertises Miscrits custom data on its existing canonical game without adding playtime or copies', () => {
+  const options = { steamService: { read: resource => ready(resource === 'library' ? {
+    games: [{ appId: 3628960, providerGameId: '3628960', name: 'Miscrits: World of Creatures', playtimeMinutes: 100 }],
+  } : {}) } };
+  const plain = createAggregateService(options).library().games;
+  const enabled = createAggregateService({ ...options, hasMiscrits: true }).library().games;
+  expect(enabled).toHaveLength(1);
+  expect(enabled[0]).toEqual({ ...plain[0], specializedResources: [{ provider: 'miscrits', basePath: '/custom/miscrits' }] });
+  expect(enabled[0].id).toBe('steam-3628960');
+});
+
 function service({ steamLibrary = ready({ games: [] }), steamProfile = ready({ personaState: 'online', currentGame: null }),
   psnLibrary = ready({ games: [] }), psnPresence = ready({ activity: 'idle', online: false, games: [] }),
   epicLibrary = ready({ games: [] }), playniteLibrary = ready({ games: [] }),

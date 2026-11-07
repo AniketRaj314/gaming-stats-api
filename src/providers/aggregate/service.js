@@ -50,7 +50,7 @@ function safeRead(service, method, resource, fallbackStatus) {
 
 function createAggregateService({ steamService, steamStatus = 'disabled', psnService, psnStatus = 'disabled',
   epicService, epicStatus = 'disabled', playniteService, playniteStatus = 'disabled',
-  trackedUsernames = [], readValorantSnapshot = () => null, now = Date.now, registryEntries } = {}) {
+  hasMiscrits = false, trackedUsernames = [], readValorantSnapshot = () => null, now = Date.now, registryEntries } = {}) {
   const registry = buildRegistry(registryEntries);
 
   function snapshots() {
@@ -256,7 +256,9 @@ function createAggregateService({ steamService, steamStatus = 'disabled', psnSer
           name: copy.observations[0]?.name || work.name, artwork: selectArtwork(copy.observations), playtime: selectPlaytime(copy) }));
         return { id: edition.id, name: edition.name, playtime: totalFor(copies), copies };
       });
-      return { id: work.id, name: work.name, artwork: selectArtwork(editions.flatMap(edition => edition.copies)
+      return { id: work.id, name: work.name,
+        ...(hasMiscrits && work.id === 'steam-3628960' ? { specializedResources: [{ provider: 'miscrits', basePath: '/custom/miscrits' }] } : {}),
+        artwork: selectArtwork(editions.flatMap(edition => edition.copies)
         .flatMap(copy => copy.observations)), playtime: totalFor(editions.map(edition => ({ playtime: {
           status: edition.playtime.status,
           seconds: edition.playtime.status === 'unknown' || edition.playtime.status === 'ambiguous' ? null : edition.playtime.knownSeconds,
