@@ -7,7 +7,7 @@ async function guidedCredentials({ applicationCredential = '', logFile, ask = pr
   let application = applicationCredential;
   if (!application) {
     try {
-      application = readApplication(logFile);
+      application = readApplication(logFile ?? undefined);
       output.write('Imported the application credential from the local game login log.\n');
     } catch (error) {
       if (!['ENOENT', 'application-credential-not-found', 'ambiguous-application-credential'].includes(error.code)) throw error;

@@ -6,7 +6,7 @@ async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (!['connect','refresh','status','disconnect'].includes(command)) throw new ProviderError('use-connect-refresh-status-or-disconnect', 'setup');
   const input = command === 'connect' && args.length === 2 && args[0] === '--input-file' ? args[1] : null;
-  const logFile = command === 'connect' && args.length === 2 && args[0] === '--log-file' ? args[1] : null;
+  const logFile = command === 'connect' && args.length === 2 && args[0] === '--log-file' ? args[1] : undefined;
   if (args.length && !input && !logFile) throw new ProviderError('invalid-command-options', 'setup');
   if (command === 'connect' && !input) {
     if (process.env.RAILWAY_ENVIRONMENT_ID && process.env.MISCRITS_SECURE_TTY !== '1') {
