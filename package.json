@@ -1,7 +1,7 @@
 {
   "name": "gaming-stats-api",
-  "version": "3.8.3",
-  "description": "Self-hostable gaming stats API with Valorant, PSN, Steam, Epic, and Playnite integrations",
+  "version": "3.9.0",
+  "description": "Self-hostable gaming stats API with Valorant, PSN, Steam, Epic, Playnite, and Miscrits integrations",
   "keywords": [
     "valorant",
     "steam",
@@ -14,7 +14,8 @@
     "tracker-gg",
     "apify",
     "express",
-    "self-hosted"
+    "self-hosted",
+    "miscrits"
   ],
   "main": "src/index.js",
   "scripts": {
@@ -42,7 +43,14 @@
     "test:psn": "jest tests/psn --runInBand",
     "test:steam": "jest tests/steam --runInBand",
     "test:epic": "jest tests/epic --runInBand",
-    "test:playnite": "jest tests/playnite --runInBand"
+    "test:playnite": "jest tests/playnite --runInBand",
+    "miscrits:connect": "node scripts/miscrits/cli.js connect",
+    "miscrits:refresh": "node scripts/miscrits/cli.js refresh",
+    "miscrits:status": "node scripts/miscrits/cli.js status",
+    "miscrits:disconnect": "node scripts/miscrits/cli.js disconnect",
+    "test:miscrits": "jest tests/miscrits --runInBand",
+    "miscrits:import-application-credential": "node scripts/miscrits/import-application-credential.js",
+    "miscrits:connect:production": "MISCRITS_SECURE_TTY=1 node scripts/miscrits/cli.js connect"
   },
   "jest": {
     "testEnvironment": "node",

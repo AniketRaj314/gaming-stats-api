@@ -70,8 +70,18 @@ if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_PLAYNITE || '')) {
     log('PLAYNITE', safeError(error));
   }
 }
+let miscritsService = null;
+let miscritsStatus = 'disabled';
+if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_MISCRITS || '')) {
+  try { miscritsService = require('./providers/miscrits').createMiscritsProvider().service; }
+  catch (error) {
+    miscritsStatus = 'unavailable';
+    log('MISCRITS', require('./shared/providerError').safeError(error));
+  }
+}
+// Miscrits refreshes the saved connection once at startup. No recurring scheduler yet.
 const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnService, psnStatus,
-  steamService, steamStatus, epicService, epicStatus, playniteService, playniteStatus, playniteUploadKeys });
+  steamService, steamStatus, epicService, epicStatus, playniteService, playniteStatus, playniteUploadKeys, miscritsService, miscritsStatus });
 
 (async () => {
   log(
@@ -85,6 +95,9 @@ const app = createApp({ startTime: Date.now(), validKeys: [...VALID_KEYS], psnSe
   if (psnService) stopPsn = psnService.start();
   if (steamService) stopSteam = steamService.start();
   if (epicService) stopEpic = epicService.start();
+  if (miscritsService) {
+    miscritsService.run().catch(error => log('MISCRITS', require('./shared/providerError').safeError(error)));
+  }
   if (TRACKED_USERNAMES.length === 0) {
     log('WARN', 'No tracked users configured; API will return 404 for all usernames until TRACKED_USERNAMES is set');
   } else {

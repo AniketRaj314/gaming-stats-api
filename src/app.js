@@ -2,6 +2,7 @@ const express = require('express');
 const { version } = require('../package.json');
 
 const { requireApiKey, requireHeaderKey } = require('./shared/auth');
+const { createMiscritsRouter } = require('./providers/miscrits/routes');
 const { createValorantRouter } = require('./providers/valorant');
 const { createPsnRouter } = require('./providers/psn/routes');
 const { createSteamRouter } = require('./providers/steam/routes');
@@ -16,7 +17,7 @@ const { TRACKED_USERNAMES } = require('./config');
 function createApp({ startTime = Date.now(), validKeys = [], psnService = null, psnStatus = 'disabled', steamService = null,
   steamStatus = 'disabled', epicService = null, epicStatus = 'disabled', playniteService = null,
   playniteStatus = 'disabled', playniteUploadKeys = [], aggregateService = null,
-  trackedUsernames = TRACKED_USERNAMES, readValorantSnapshot = readSnapshot } = {}) {
+  miscritsService = null, miscritsStatus = 'disabled', trackedUsernames = TRACKED_USERNAMES, readValorantSnapshot = readSnapshot } = {}) {
   const app = express();
   const auth = requireApiKey(validKeys);
   const playniteUploadAuth = requireHeaderKey(playniteUploadKeys, 'x-playnite-key', 'Invalid or missing Playnite upload key');
@@ -33,6 +34,7 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   // frontend migration; serving it directly also preserves POST request bodies.
   const valorant = createValorantRouter({ auth, startTime });
   app.use('/custom/valorant', valorant);
+  app.use('/custom/miscrits', createMiscritsRouter({ service: miscritsService, auth, unavailableStatus: miscritsStatus }));
   app.use('/valorant', valorant);
   app.use('/psn', auth, createPsnRouter({ service: psnService, unavailableStatus: psnStatus }));
   app.use('/steam', auth, createSteamRouter({ service: steamService, unavailableStatus: steamStatus }));
@@ -40,7 +42,8 @@ function createApp({ startTime = Date.now(), validKeys = [], psnService = null, 
   app.use('/playnite', createPlayniteRouter({ service: playniteService, readAuth: auth,
     uploadAuth: playniteUploadAuth, unavailableStatus: playniteStatus }));
   const aggregate = aggregateService || createAggregateService({ steamService, steamStatus, psnService, psnStatus,
-    epicService, epicStatus, playniteService, playniteStatus, trackedUsernames, readValorantSnapshot });
+    epicService, epicStatus, playniteService, playniteStatus, trackedUsernames, readValorantSnapshot,
+    hasMiscrits: Boolean(miscritsService) });
   app.use('/aggregate', auth, createAggregateRouter({ service: aggregate }));
 
   app.use((req, res) => {

@@ -151,3 +151,7 @@ publisher-only global stats are also outside an owner user-key integration.
   portraits, background and promo art, plus role and ability icons. Map rows now
   include list-view variants and standard, stylized, and Premier backgrounds in
   addition to the existing display icon and splash.
+
+## Miscrits 3.9.0 coverage
+
+Core player account data, owned individuals, active team and family grouping join a cached public species catalog. Derived ratings, persistent stats, health and evolution artwork are provided. Raw account data is allowlisted and sanitized. Items, saved teams, quests, arena data and in-game feats are deferred. No targets or subjective rankings are implemented. See [Miscrits](miscrits.md).

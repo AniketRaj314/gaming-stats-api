@@ -261,3 +261,7 @@ A missing canonical ID returns HTTP 404. Provider game IDs are not substitutes f
 7. Render each `progress.sets` item separately and use `progress.rarestUnlock` for the page-level rarest section.
 8. Keep raw provider calls only for specialized data that is not yet represented by the aggregate contract, such as Valorant competitive statistics.
 9. Report an unconfirmed match for backend curation instead of merging titles in frontend code.
+
+## Specialized Miscrits data
+
+When enabled, canonical game steam-3628960 advertises specializedResources with provider miscrits and basePath /custom/miscrits. Keep Steam playtime, achievements and activity authoritative; fetch the collection via the [Miscrits frontend handoff](frontend-miscrits-handoff.md).

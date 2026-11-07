@@ -6,7 +6,7 @@ test('public provider docs require no credentials or snapshot/upstream access', 
   const fetchMock = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('No network allowed'));
   const service = { read: jest.fn(() => { throw new Error('No snapshot access allowed'); }), game: jest.fn() };
   try {
-    const app = createApp({ validKeys: ['test-read-key'], psnService: service });
+    const app = createApp({ validKeys: ['test-read-key'], psnService: service, miscritsService: service });
     for (const route of ['/', '/docs', '/llms.txt', '/aggregate', '/aggregate/docs', '/aggregate/llms.txt', '/psn', '/psn/', '/psn/docs', '/psn/llms.txt', '/steam', '/steam/docs', '/steam/llms.txt', '/epic', '/epic/docs', '/epic/llms.txt', '/playnite', '/playnite/docs', '/playnite/llms.txt']) {
       const res = await request(app).get(route);
       expect(res.status).toBe(200);
@@ -29,6 +29,18 @@ test('public provider docs require no credentials or snapshot/upstream access', 
     for (const route of ['/aggregate/library', '/aggregate/now-playing', '/aggregate/games/example-game']) {
       expect((await request(app).get(route)).status).toBe(401);
     }
+    for (const route of ['/custom/miscrits', '/custom/miscrits/docs', '/custom/miscrits/llms.txt']) {
+      const res = await request(app).get(route);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain(version);
+      expect(res.text).toContain('playerMiscritId');
+      for (const text of ['MISCRITS_USERNAME', 'MISCRITS_PASSWORD', 'MISCRITS_APPLICATION_CREDENTIAL',
+        'MISCRITS_ACCOUNT_ID is optional', 'startup-and-manual', 'miscrits:import-application-credential',
+        'miscrits:connect:production', 'Guided account setup']) {
+        expect(res.text).toContain(text);
+      }
+    }
+    expect((await request(app).get('/custom/miscrits/player')).status).toBe(401);
     expect(service.read).not.toHaveBeenCalled();
     expect(service.game).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
