@@ -91,7 +91,7 @@ test('guided connection discovers the owner, fetches once and reuses the stored 
  expect(store.state().accountId).toBe('owner-id');
  expect(client.login).toHaveBeenCalledTimes(1);
  expect(client.player).toHaveBeenCalledTimes(1);
- expect(service.read()).toMatchObject({status:'ready',refreshMode:'startup-and-manual'});
+ expect(service.read()).toMatchObject({status:'ready',refreshMode:'startup-request-and-manual'});
  const restarted=createService({store,client,settings,now:()=>now});
  await restarted.run();
  expect(client.login).toHaveBeenCalledTimes(1);

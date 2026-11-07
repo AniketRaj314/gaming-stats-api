@@ -16,9 +16,13 @@ function createMiscritsRouter({ service, auth, unavailableStatus = 'disabled' })
     try {
       if (!service) return res.status(503).json({ provider: 'miscrits', status: unavailableStatus });
       const { data, ...envelope } = service.read();
-      if (!data) return res.status(503).json(envelope);
+      if (!data) {
+        service.refreshIfDue?.();
+        return res.status(503).json(envelope);
+      }
       const value = fn(data, req);
       if (value === undefined) return res.status(404).json({ ...envelope, error: 'Not found' });
+      service.refreshIfDue?.();
       return res.json({ ...envelope, data: value });
     } catch { return res.status(503).json({ provider: 'miscrits', status: 'unavailable' }); }
   });

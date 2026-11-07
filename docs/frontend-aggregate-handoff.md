@@ -265,3 +265,5 @@ A missing canonical ID returns HTTP 404. Provider game IDs are not substitutes f
 ## Specialized Miscrits data
 
 When enabled, canonical game steam-3628960 advertises specializedResources with provider miscrits and basePath /custom/miscrits. Keep Steam playtime, achievements and activity authoritative; fetch the collection via the [Miscrits frontend handoff](frontend-miscrits-handoff.md).
+
+Miscrits custom data requests can trigger a shared background refresh every five minutes by default (configurable). Aggregate routes do not trigger this specialized refresh. See the Miscrits handoff for refreshDue, nextRefreshAt and cached-response behavior.

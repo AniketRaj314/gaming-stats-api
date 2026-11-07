@@ -22,17 +22,48 @@ the read key or game credentials in browser code.
 | /custom/miscrits/player/snapshot | Object: sanitized source data for diagnostics, not required for normal rendering |
 
 Every response uses schemaVersion, provider, accountRef, canonicalGameId, status,
-fetchedAt, lastAttemptAt, catalog, interpretationVersion, refreshMode and data.
+fetchedAt, lastAttemptAt, catalog, interpretationVersion, refreshMode,
+requestRefreshIntervalSeconds, nextRefreshAt, refreshDue and data.
 Read status before treating an empty list as zero ownership. HTTP 503 means
 unavailable/pending/disabled, 401 means invalid authentication, 404 unknown ID,
 400 invalid ID or unsupported parameters. Stale responses retain the last
 successful data and its original fetchedAt. Label them as stale.
 Account connection is an operator-only terminal flow using miscrits:connect.
 Do not build a frontend login form or request game credentials.
-The first snapshot is fetched during connection. Refresh also runs once at server
-startup and can be requested manually.
-refreshMode is startup-and-manual; nextRefreshAt is null because no recurring
-scheduler is enabled. Website requests never refresh the game.
+The first snapshot is fetched during connection. Startup and manual refresh remain
+available. From v3.10.0, valid authenticated Miscrits data requests also trigger a
+background refresh when the cached snapshot is at least five minutes old by default.
+
+## Refresh behavior for the frontend
+
+Render the returned data immediately. The triggering response contains the saved
+snapshot; it does not wait for the game API. All custom Miscrits endpoints share
+one refresh, including concurrent page requests. There is no force-refresh query
+parameter and no frontend need to perform credential/session management.
+
+- refreshMode is startup-request-and-manual by default.
+- requestRefreshIntervalSeconds is 300 by default, configurable by the operator
+  with MISCRITS_REFRESH_MINUTES. Do not hardcode five minutes in client logic.
+- refreshDue=true means the snapshot is eligible for an update, possibly already
+  in progress. Keep showing the returned data and fetchedAt. A subsequent request
+  can get the completed snapshot; compare fetchedAt to detect the update.
+- nextRefreshAt is the earliest time a later request can trigger work, not an
+  automatic schedule. There are no refreshes just because the page stays closed.
+- If you want to update an open page, optionally re-fetch once after a short delay
+  when refreshDue is true. Do not enter a tight polling loop awaiting a new timestamp.
+- On failure, the old snapshot remains available with status stale and unchanged
+  fetchedAt. Further request-triggered attempts wait the configured interval.
+- status ready can coexist with refreshDue=true: the separate age-based stale
+  threshold remains MISCRITS_STALE_HOURS (24 hours by default).
+- With MISCRITS_REFRESH_MINUTES=0, refreshMode is startup-and-manual,
+  requestRefreshIntervalSeconds is 0, nextRefreshAt is null and refreshDue is false.
+
+A connected account without its first snapshot returns 503 while a request may
+start background recovery. Keep the unavailable state and retry later. An
+unconnected account needs operator setup; requests do not connect it.
+Health/docs and aggregate endpoints never trigger Miscrits refresh. Fetch at least
+one /custom/miscrits data route when rendering the collection page. The backend
+continues to fetch get_player as a whole, not once per individual creature.
 
 ## Owned individual example
 
