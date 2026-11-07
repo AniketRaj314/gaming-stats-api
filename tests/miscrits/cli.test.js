@@ -32,6 +32,7 @@ afterEach(()=>{
 });
 test('guided connect requests the initial snapshot and never prints the credentials',async()=>{
  await main();expect(service.connect).toHaveBeenCalledWith(expect.objectContaining({username:'owner'}),{refresh:true});
+ expect(guidedCredentials).toHaveBeenCalledWith({applicationCredential:'',logFile:undefined});
  expect(store.close).toHaveBeenCalled();
  expect(JSON.stringify([...log.mock.calls,...error.mock.calls])).not.toContain('synthetic-password');
 });

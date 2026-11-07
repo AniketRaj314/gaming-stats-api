@@ -134,6 +134,10 @@ art; it is not a front sprite or a game cover.
 
 ## Guided account setup
 
+Use version 3.9.1 or later for guided setup. Version 3.9.0 could exit with
+internal-error before displaying prompts when --log-file was omitted. No extra
+environment flag fixes that failure; upgrade and reconnect to the new deployment.
+
 Keep the existing GAMING_ENCRYPTION_KEY / GAMING_ENCRYPTION_KEY_FILE and persistent
 GAMING_DATA_DIR configuration. Do not regenerate the encryption key on redeployment.
 On Railway the data directory must be inside the mounted volume, for example

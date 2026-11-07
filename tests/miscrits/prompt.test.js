@@ -48,6 +48,16 @@ test('a cloud installation prompts for the application credential once before us
  expect(await guidedCredentials({ask,readApplication,output:{write:jest.fn()}})).toMatchObject({applicationCredential:key});
  expect(ask).toHaveBeenCalledWith('Application credential');
 });
+test.each([undefined, null])('an omitted log option (%s) uses discovery and falls back to the cloud prompt',async(logFile)=>{
+ const readApplication=jest.fn(file=>{
+  if(file!==undefined)throw new TypeError('default path bypassed');
+  throw Object.assign(new Error(),{code:'ENOENT'});
+ });
+ const ask=jest.fn().mockResolvedValueOnce(key).mockResolvedValueOnce('owner').mockResolvedValueOnce('password');
+ expect(await guidedCredentials({logFile,ask,readApplication,output:{write:jest.fn()}})).toEqual({username:'owner',password:'password',applicationCredential:key});
+ expect(readApplication).toHaveBeenCalledWith(undefined);
+ expect(ask.mock.calls.map(call=>call[0])).toEqual(['Application credential','Miscrits username','Miscrits password']);
+});
 test('configured application values avoid log reads and cancellation performs no login',async()=>{
  const readApplication=jest.fn();const ask=jest.fn().mockRejectedValue(new ProviderError('cancelled','setup'));
  await expect(guidedCredentials({applicationCredential:key,ask,readApplication})).rejects.toThrow('cancelled');
