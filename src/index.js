@@ -73,7 +73,7 @@ if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_PLAYNITE || '')) {
 let miscritsService = null;
 let miscritsStatus = 'disabled';
 if (/^(true|1|yes|on)$/i.test(process.env.ENABLE_MISCRITS || '')) {
-  try { miscritsService = require('./providers/miscrits').createMiscritsProvider().service; }
+  try { miscritsService = require('./providers/miscrits').createMiscritsProvider({ report: message => log('MISCRITS', message) }).service; }
   catch (error) {
     miscritsStatus = 'unavailable';
     log('MISCRITS', require('./shared/providerError').safeError(error));

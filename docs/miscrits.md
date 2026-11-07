@@ -1,6 +1,7 @@
 # Miscrits core API
 
-Version 3.9.0 adds a read-only custom integration at `/custom/miscrits`.
+Version 3.10.0 provides a read-only custom integration at `/custom/miscrits`
+with configurable refresh on data requests (five minutes by default).
 It serves the configured owner's cached account data and the public species catalog.
 It does not automate gameplay. Core refresh calls `get_player` once in the normal
 case and joins owned species IDs to independently cached
@@ -45,8 +46,10 @@ Every successful data response has this shape (timestamps are illustrative):
   "status": "ready",
   "fetchedAt": "2026-11-07T12:43:15.938Z",
   "lastAttemptAt": "2026-11-07T12:43:15.938Z",
-  "nextRefreshAt": null,
-  "refreshMode": "startup-and-manual",
+  "nextRefreshAt": "2026-11-07T12:48:15.938Z",
+  "refreshMode": "startup-request-and-manual",
+  "requestRefreshIntervalSeconds": 300,
+  "refreshDue": false,
   "interpretationVersion": 1,
   "catalog": {
     "hash": "sha256-of-actual-public-catalog-bytes",
@@ -63,7 +66,60 @@ the actual content hash and conditional ETag reads instead of claiming an
 unverified version marker. Catalog and account fetch times differ.
 Every successful refresh recalculates derived data. Failed refreshes keep the
 previous snapshot with its original fetchedAt and status stale. Stale data also
-remains readable after MISCRITS_STALE_HOURS. No request refreshes upstream data.
+remains readable after MISCRITS_STALE_HOURS. Requests never wait for upstream
+data: they return the saved snapshot and may start a background refresh.
+
+## Refresh on request
+
+MISCRITS_REFRESH_MINUTES defaults to 5. It accepts whole minutes from 0 to 1440;
+0 disables request-triggered refresh while retaining connection, startup and
+manual refresh. Missing or empty configuration uses the default. Restart the
+service after changing the variable.
+
+An authenticated, valid data request returns the current cached response
+immediately. If the last successful refresh or failed attempt is at least the
+configured interval old, one background refresh is queued. All eight data routes
+share one account snapshot and cooldown, so fetching player, team and collection
+together does not cause separate upstream reads. A shared worker lock and an
+eligibility check inside that lock prevent duplicate work across processes using
+the same storage. A queued job is skipped if another worker already refreshed.
+
+A failed refresh retains the last good snapshot and its original fetchedAt,
+marks it stale, and waits the same configured interval before another request
+can retry. Attempt timestamps are persisted, so the request cooldown survives a
+process restart. Explicit startup and manual refreshes bypass this cooldown.
+Failures are caught and logged as sanitized provider errors, without delaying
+or failing the HTTP response that triggered them.
+
+Health checks, docs, unauthenticated/invalid requests, unknown detail IDs and
+unsupported routes never trigger refresh. Aggregate routes also do not trigger
+Miscrits refresh: callers must request a custom Miscrits data route. When a
+connected account has no snapshot yet, a valid data request can initiate recovery
+but still returns 503 until data is available. An unconnected/disconnected account
+never logs in automatically from a request.
+
+There is no periodic scheduler. After startup, no further game calls happen merely
+because five minutes passed. The next eligible data request starts the work.
+The response that triggers it still contains the older snapshot; a later request
+can see the completed update. Running background requests may renew the saved
+session, using the same bounded authentication behavior as manual refresh.
+
+Envelope fields:
+- refreshMode: startup-request-and-manual when request refresh is enabled;
+  startup-and-manual when disabled.
+- requestRefreshIntervalSeconds: configured minutes times 60; 0 when disabled.
+- nextRefreshAt: earliest eligibility time for a subsequent request, not a promised
+  scheduled fetch. Null when disabled or unconnected.
+- refreshDue: true if request refresh is currently eligible. A refresh may already
+  be running; this does not promise completion or indicate a separate job per request.
+- fetchedAt: time of the last successful snapshot. Never advanced on failure.
+- lastAttemptAt: time of the most recently completed refresh attempt.
+
+The existing MISCRITS_STALE_HOURS threshold (default 24) controls the age-based
+stale label, independently of request refresh. A response can be ready and
+refreshDue=true between five minutes and that threshold. Any failed refresh
+marks the saved snapshot stale immediately. Always show fetchedAt when freshness
+matters; a due or stale snapshot is still usable data.
 
 ## Nomenclature and fields
 
@@ -258,10 +314,10 @@ The username, password, application credential and session token pair are encryp
 together using AES-256-GCM. The password is retained for bounded reauthentication
 after refresh-token expiry. Keep private backups encrypted.
 
-Refresh runs after connection, once at server startup, and on an explicit manual
-request. There is no recurring scheduler yet. Frontend requests never cause a
-login or refresh. Cloud network behavior and concurrent game sessions still need
-operational verification before unattended periodic scheduling.
+Refresh runs after connection, once at server startup, manually, and in the
+background when an authenticated data request finds the snapshot due. There is
+no periodic scheduler. Background work follows the same identity verification,
+session management, and failure retention as manual refresh.
 
 ```sh
 npm run miscrits:refresh
@@ -308,6 +364,7 @@ Configuration:
 - MISCRITS_ACCOUNT_ID: optional expected-account restriction; otherwise learned on connection.
 - MISCRITS_APPLICATION_CREDENTIAL: optional application Basic value for setup.
 - MISCRITS_APPLICATION_CREDENTIAL_FILE: optional private-file alternative; inline value takes precedence.
+- MISCRITS_REFRESH_MINUTES: request refresh and failure cooldown in whole minutes, default 5; 0 disables request refresh.
 - MISCRITS_CATALOG_HOURS: catalog revalidation interval, default 24.
 - MISCRITS_STALE_HOURS: snapshot stale threshold, default 24.
 
@@ -325,8 +382,13 @@ revalidation. No historical inventory counts or target policies are configuratio
 Local validation covered a real account connection and first snapshot, all eight
 cached data routes, authentication, secret/identity filtering, and sample Flue,
 Tide Gong and Hop-Chi avatar/back assets. Hidden input was also checked in a real
-macOS pseudo-terminal. This does not verify Railway login, natural session expiry,
-or concurrent game sessions. No private inventory fixtures are committed.
+macOS pseudo-terminal. Railway login and its initial snapshot were subsequently
+verified. Natural session expiry and concurrent game sessions are separate
+operational checks. No private inventory fixtures are committed.
+
+Request-refresh regression tests cover the five-minute boundary, immediate cached
+HTTP responses, concurrent requests/workers, failure cooldown and recovery, missing
+snapshots, disabling request refresh, and routes that must not trigger it.
 
 Run `npm run test:miscrits` for synthetic normalization, protocol, encrypted
 storage, retry and route tests without game access.

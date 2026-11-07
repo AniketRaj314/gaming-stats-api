@@ -21,10 +21,16 @@ function config(env = process.env) {
     throw new ProviderError('remove-login-env-and-use-miscrits-connect', 'configuration');
   }
   if (applicationCredential && !/^[A-Za-z0-9+/]+={0,2}$/.test(applicationCredential)) throw new ProviderError('invalid-application-credential', 'configuration');
+  const refreshMinutes = env.MISCRITS_REFRESH_MINUTES === undefined || env.MISCRITS_REFRESH_MINUTES === ''
+    ? 5 : Number(env.MISCRITS_REFRESH_MINUTES);
+  if (!Number.isInteger(refreshMinutes) || refreshMinutes < 0 || refreshMinutes > 1440) {
+    throw new ProviderError('invalid-miscrits-refresh-minutes', 'configuration');
+  }
   return { enabled: enabled(env.ENABLE_MISCRITS), accountId: env.MISCRITS_ACCOUNT_ID || '',
     applicationCredential,
     directory: path.resolve(env.GAMING_DATA_DIR || 'cache/gaming', 'miscrits'),
     keyValue: env.GAMING_ENCRYPTION_KEY, keyFile: env.GAMING_ENCRYPTION_KEY_FILE,
+    refreshMs: refreshMinutes * 60000,
     catalogMs: hours('MISCRITS_CATALOG_HOURS', 24), staleMs: hours('MISCRITS_STALE_HOURS', 24) };
 }
 module.exports = { config, encryptionKey };

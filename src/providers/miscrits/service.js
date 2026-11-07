@@ -7,7 +7,16 @@ function expiry(token) {
     return Number.isSafeInteger(value) ? value * 1000 : 0;
   } catch { return 0; }
 }
-function createService({ store, client, settings, now = Date.now }) {
+function createService({ store, client, settings, now = Date.now, report = () => {} }) {
+  const refreshMs = settings.refreshMs ?? 300000;
+  let backgroundRefresh = null;
+  function nextRequestRefresh(state, snapshot) {
+    if (!refreshMs || state.status !== 'connected' || !acceptsAccount(state.accountId)) return null;
+    if (!snapshot || snapshot.generation !== state.generation) return now();
+    // A failed attempt starts the same cooldown as a successful refresh. The
+    // persisted timestamps preserve that cooldown across processes and restarts.
+    return Math.max(snapshot.success || 0, snapshot.attempted) + refreshMs;
+  }
   function acceptsAccount(accountId) {
     return typeof accountId === 'string' && Boolean(accountId) && (!settings.accountId || accountId === settings.accountId);
   }
@@ -93,9 +102,15 @@ function createService({ store, client, settings, now = Date.now }) {
     store.publish('core', payload, state.generation, now(), 0);
     return { ok: true, fetchedAt, playerMiscritCount: data.miscrits.length };
   }
-  async function run() {
+  async function run({ onlyIfDue = false } = {}) {
     return store.withLock(async () => {
       const state = store.state();
+      if (onlyIfDue) {
+        // Recheck under the shared worker lock: another process may have just
+        // refreshed the snapshot after the request decided it was due.
+        const next = nextRequestRefresh(state, store.get('core'));
+        if (next === null || next > now()) return { skipped: true };
+      }
       try {
         const session = store.session();
         if (!session) fail('run-miscrits-connect-first');
@@ -107,11 +122,30 @@ function createService({ store, client, settings, now = Date.now }) {
       }
     });
   }
+  function refreshIfDue() {
+    if (backgroundRefresh) return backgroundRefresh;
+    const next = nextRequestRefresh(store.state(), store.get('core'));
+    if (next === null || next > now()) return Promise.resolve({ skipped: true });
+    // Start after the cached HTTP response has been constructed. No timer polls
+    // the upstream service when nobody requests data.
+    backgroundRefresh = new Promise(resolve => setImmediate(resolve))
+      .then(() => run({ onlyIfDue: true }))
+      .catch(error => {
+        if (error.code === 'busy') return { skipped: true };
+        try { report(safeError(error)); } catch { /* Logging must not reject a background task. */ }
+        return { ok: false, error: safeError(error) };
+      })
+      .finally(() => { backgroundRefresh = null; });
+    return backgroundRefresh;
+  }
   function read() {
     const state = store.state(), snapshot = store.get('core');
+    const next = nextRequestRefresh(state, snapshot);
     const base = { schemaVersion: 1, provider: 'miscrits', accountRef: 'owner', canonicalGameId: 'steam-3628960',
       status: 'pending', fetchedAt: null, lastAttemptAt: snapshot ? new Date(snapshot.attempted).toISOString() : null,
-      nextRefreshAt: null, refreshMode: 'startup-and-manual' };
+      nextRefreshAt: next === null ? null : new Date(next).toISOString(),
+      refreshMode: refreshMs ? 'startup-request-and-manual' : 'startup-and-manual',
+      requestRefreshIntervalSeconds: refreshMs / 1000, refreshDue: next !== null && next <= now() };
     if (state.status !== 'connected' || !acceptsAccount(state.accountId)) return { ...base, status: 'unavailable' };
     if (!snapshot?.payload || snapshot.generation !== state.generation) {
       return { ...base, status: snapshot?.generation === state.generation && snapshot.failures ? 'unavailable' : 'pending' };
@@ -120,7 +154,7 @@ function createService({ store, client, settings, now = Date.now }) {
       fetchedAt: snapshot.payload.fetchedAt, catalog: snapshot.payload.catalog,
       interpretationVersion: snapshot.payload.interpretationVersion, data: snapshot.payload };
   }
-  return { connect, run, read,
+  return { connect, run, read, refreshIfDue,
     disconnect: () => store.withLock(async () => { store.disconnect(); return { disconnected: true, remoteRevoked: false }; }) };
 }
 module.exports = { createService, expiry };

@@ -56,3 +56,11 @@ test('uses documented Godot data directories and allows log path overrides throu
  expect(defaultLogPath('linux','/home/owner',{})).toBe('/home/owner/.local/share/godot/app_userdata/Miscrits/logs/godot.log');
  expect(defaultLogPath('linux','/home/owner',{XDG_DATA_HOME:'/data'})).toBe('/data/godot/app_userdata/Miscrits/logs/godot.log');
 });
+
+test('request refresh defaults to five minutes, accepts disable/custom values and rejects malformed intervals',()=>{
+ expect(config({}).refreshMs).toBe(300000);
+ expect(config({MISCRITS_REFRESH_MINUTES:''}).refreshMs).toBe(300000);
+ expect(config({MISCRITS_REFRESH_MINUTES:'10'}).refreshMs).toBe(600000);
+ expect(config({MISCRITS_REFRESH_MINUTES:'0'}).refreshMs).toBe(0);
+ for(const value of ['-1','1.5','1441','Infinity','no'])expect(()=>config({MISCRITS_REFRESH_MINUTES:value})).toThrow('invalid-miscrits-refresh-minutes');
+});
