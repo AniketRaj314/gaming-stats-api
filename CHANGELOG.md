@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.11.0 - 2026-11-08
+
+- Add Miscrits elementIconUrl to catalog, owned, team and family rows, and
+  iconUrl to catalog abilities using the game client's selection rules.
+- Use verified public website PNGs for single/dual elements, attacks, buffs,
+  accuracy effects, healing and other statuses. Unknown mappings return null.
+- Enrich previously saved snapshots on read without changing freshness or making
+  extra upstream requests. Preserve raw data and all additional/enchantment effects.
+- Document the response fields, asset hosts and fallbacks in public docs and
+  the frontend handoff; cover mapping precedence and cached snapshot upgrades.
+
 ## 3.8.0 - 2026-09-21
 
 - Make `GET /aggregate/games/:canonicalGameId` the authoritative game-page

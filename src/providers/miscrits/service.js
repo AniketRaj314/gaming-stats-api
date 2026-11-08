@@ -1,4 +1,5 @@
 const normalize = require('./normalize');
+const { withSnapshotIcons } = require('./icons');
 const { ProviderError, safeError } = require('../../shared/providerError');
 const fail = code => { throw new ProviderError(code, 'miscrits'); };
 const sameUsername = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
@@ -152,7 +153,7 @@ function createService({ store, client, settings, now = Date.now, report = () =>
     }
     return { ...base, status: snapshot.status !== 'ready' || now() - snapshot.success >= settings.staleMs ? 'stale' : 'ready',
       fetchedAt: snapshot.payload.fetchedAt, catalog: snapshot.payload.catalog,
-      interpretationVersion: snapshot.payload.interpretationVersion, data: snapshot.payload };
+      interpretationVersion: snapshot.payload.interpretationVersion, data: withSnapshotIcons(snapshot.payload) };
   }
   return { connect, run, read, refreshIfDue,
     disconnect: () => store.withLock(async () => { store.disconnect(); return { disconnected: true, remoteRevoked: false }; }) };

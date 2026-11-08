@@ -1,4 +1,5 @@
 const { ProviderError } = require('../../shared/providerError');
+const { elementIconUrl, withCatalogIcons } = require('./icons');
 const stats = ['hp', 'spd', 'ea', 'ed', 'pa', 'pd'];
 const qualityKeys = ['h', 's', 'e', 'd', 'p', 'pd'];
 const bonusKeys = ['hb', 'sb', 'eb', 'db', 'pb', 'pdb'];
@@ -40,9 +41,9 @@ function catalog(rows) {
     const abilities = new Map(row.abilities.map(a => [a.id, a]));
     if (row.ability_order.length !== 12 || new Set(row.ability_order).size !== 12
       || row.ability_order.some(id => !abilities.has(id))) fail('invalid-ability-order');
-    return { ...row, miscritId: row.id,
+    return withCatalogIcons({ ...row, miscritId: row.id,
       evolutions: row.names.map((name, evolutionIndex) => ({ name, evolutionIndex, artwork: artwork(name) })),
-      abilities: row.ability_order.map((id, index) => ({ ...abilities.get(id), unlockLevel: abilityLevels[index] })) };
+      abilities: row.ability_order.map((id, index) => ({ ...abilities.get(id), unlockLevel: abilityLevels[index] })) });
   });
 }
 function relic(value) {
@@ -92,6 +93,7 @@ function player(raw, species) {
       bonusLevel: row.bl ?? null, pendingRebonus: row.tr ?? null, pendingBonus: row.temp_bonus ?? null,
       missingBonusPoints, enchantedAbilityIds: row.en ?? [],
       rarity: definition?.rarity ?? null, element: definition?.element ?? null,
+      elementIconUrl: elementIconUrl(definition?.element),
       artwork: definition?.evolutions[evolutionIndex].artwork ?? { backUrl: null, avatarUrl: null },
       teamSlot: raw.team_order.includes(row.id) ? raw.team_order.indexOf(row.id)+1 : null,
       anomalies: [...(missingBonusPoints < 0 ? ['negative-missing-bonus-points'] : []),
@@ -108,10 +110,10 @@ function player(raw, species) {
 }
 function families(species, miscrits) {
   const grouped = new Map(species.map(s => [s.id, { miscritId: s.id, names: s.names, rarity: s.rarity,
-    element: s.element, catalogStatus: 'resolved', owned: false, ownedCount: 0, playerMiscritIds: [] }]));
+    element: s.element, elementIconUrl: elementIconUrl(s.element), catalogStatus: 'resolved', owned: false, ownedCount: 0, playerMiscritIds: [] }]));
   for (const m of miscrits) {
     if (!grouped.has(m.miscritId)) grouped.set(m.miscritId, { miscritId: m.miscritId, names: null,
-      rarity: null, element: null, catalogStatus: 'unresolved', owned: false, ownedCount: 0, playerMiscritIds: [] });
+      rarity: null, element: null, elementIconUrl: null, catalogStatus: 'unresolved', owned: false, ownedCount: 0, playerMiscritIds: [] });
     const family = grouped.get(m.miscritId);
     family.owned = true; family.ownedCount++; family.playerMiscritIds.push(m.playerMiscritId);
   }

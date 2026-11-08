@@ -29,3 +29,12 @@ test('exposes no owned data in health',async()=>{
  const r=await request(app).get('/custom/miscrits/health');
  expect(r.status).toBe(200);expect(r.body).not.toHaveProperty('data');
 });
+test('returns element icons consistently in catalog, owned detail, families and active team',async()=>{
+ for(const path of ['/miscrits/1','/player/miscrits/101','/player/miscrits/families','/player/team']){
+  const r=await request(app).get('/custom/miscrits'+path).set('X-API-Key','test');
+  expect(r.status).toBe(200);
+  const row=Array.isArray(r.body.data)?r.body.data[0]:r.body.data;
+  expect(row.elementIconUrl).toBe('https://worldofmiscrits.com/fire.png');
+  if(path==='/miscrits/1') expect(row.abilities[0]).toHaveProperty('iconUrl',null);
+ }
+});

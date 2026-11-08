@@ -18,6 +18,25 @@ beforeEach(()=>{
  service=createService({store,client,settings,now:()=>now});
 });
 afterEach(()=>{store.close();fs.rmSync(dir,{recursive:true,force:true});});
+test('adds icons to legacy cached snapshots during outages without new upstream reads or timestamp changes', async()=>{
+ const definition=f.species();
+ Object.assign(definition.abilities[0],{type:'Attack',element:'Physical'});
+ client.catalog.mockResolvedValue({rows:[definition],hash:'hash',fetchedAt:new Date(now).toISOString(),checkedAt:now});
+ await service.connect(credentials,{refresh:true});
+ const snapshot=store.get('core');
+ for(const row of [...snapshot.payload.species,...snapshot.payload.miscrits,...snapshot.payload.families]) delete row.elementIconUrl;
+ for(const row of snapshot.payload.species) for(const ability of row.abilities) delete ability.iconUrl;
+ store.publish('core',snapshot.payload,store.state().generation,now,0);
+ store.fail('core',store.state().generation,'refresh-failed',now+1,0);
+ client.player.mockClear();client.catalog.mockClear();
+ const result=service.read();
+ expect(result).toMatchObject({status:'stale',fetchedAt:new Date(now).toISOString()});
+ expect(result.data.miscrits[0].elementIconUrl).toBe('https://worldofmiscrits.com/fire.png');
+ expect(result.data.families[0].elementIconUrl).toBe('https://worldofmiscrits.com/fire.png');
+ expect(result.data.species[0].abilities.find(a=>a.id===12).iconUrl).toBe('https://worldofmiscrits.com/physical.png');
+ expect(store.get('core').payload.species[0]).not.toHaveProperty('elementIconUrl');
+ expect(client.player).not.toHaveBeenCalled();expect(client.catalog).not.toHaveBeenCalled();
+});
 test('encrypts secrets, caches catalog, publishes one snapshot, and retains it on failed refresh', async()=>{
  await service.connect(credentials);
  expect(fs.readFileSync(path.join(dir,'credentials.sqlite')).includes(Buffer.from('private-password'))).toBe(false);
