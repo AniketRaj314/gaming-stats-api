@@ -1,6 +1,6 @@
 # Miscrits core API
 
-Version 3.10.0 provides a read-only custom integration at `/custom/miscrits`
+Version 3.11.0 provides a read-only custom integration at `/custom/miscrits`
 with configurable refresh on data requests (five minutes by default).
 It serves the configured owner's cached account data and the public species catalog.
 It does not automate gameplay. Core refresh calls `get_player` once in the normal
@@ -187,6 +187,55 @@ Nicknames never determine asset filenames.
 These public URLs are derived from canonical names, not checked for existence
 per request. Use image-error placeholders. Back art is explicitly back-facing
 art; it is not a front sprite or a game cover.
+
+### Element and ability icons (3.11.0)
+
+- Catalog families, owned individuals, active team members and ownership-family
+  rows include `elementIconUrl: string | null` alongside `element`. All six
+  elements and nine catalog dual-element combinations have dedicated icons.
+- Catalog `abilities[]` include `iconUrl: string | null`, in existing
+  `ability_order` order. Join an individual's `miscritId` to the catalog to render
+  its abilities. The owned raw snapshot remains unchanged.
+- URLs use public `https://worldofmiscrits.com/<icon>.png` assets, requiring no
+  game credentials or API key. They are links, not proxied or bundled game files.
+  Creature artwork continues to use the separate `cdn.worldofmiscrits.com` host.
+
+Selection follows the captured game client's `Ability.get_icon` and
+`get_elemental_icon` rules, not the ability name or description. Positive/negative
+Buff AP for Misc abilities selects buff/debuff; `keys` containing `acc` selects accuracy variants.
+The `accuracy` field is hit chance and does not make an ability an accuracy buff.
+Healing and healing over time share heal; ForceSwitch shares confuse. Damage over
+time and delayed bombs use elemental variants. True damage uses truedamage after
+the game's Dot/TimeBomb/Hot/ForceSwitch precedence. Other recognized status types
+have dedicated icons. Buffs over time use bot_buff/bot_debuff.
+Non-Misc Buff abilities such as the Physical-tagged Sprint use the game's generic
+buff fallback.
+
+Elemental-primary attacks can use combined elemental or elemental/physical icons
+from their first non-Misc additional element. Physical-primary attacks retain the
+physical icon, matching the game. Additional healing, buffs and enchantment effects
+remain in the original fields; one primary icon is not a summary of every effect
+and does not change with an individual's enchantment state.
+
+| Example | Selected icon |
+| --- | --- |
+| Burn (Fire attack) | https://worldofmiscrits.com/fire.png |
+| Bash (Physical attack) | https://worldofmiscrits.com/physical.png |
+| Laser Focus (`keys: ["acc"]`) | https://worldofmiscrits.com/accuracy_buff.png |
+| Sprint (speed buff with hit accuracy) | https://worldofmiscrits.com/buff.png |
+| Debilitate (negative Buff AP) | https://worldofmiscrits.com/debuff.png |
+| Fire + Earth attack | https://worldofmiscrits.com/fireearth.png |
+
+The allowlist was verified against 60 public PNG assets and the current
+[species catalog](https://worldofmiscrits.com/miscrits.json) on 2026-11-08.
+Unknown mappings or unverified assets return null, never a guessed URL. For
+example, bomb_earth is not in the verified set. File availability may change;
+clients must handle nulls and image-load errors. There are no image probes during
+API requests and no extra configuration is required.
+
+Existing saved snapshots gain these presentation fields on read, even when stale
+or an upstream refresh fails. Their fetchedAt, refresh schedule, schemaVersion and
+interpretationVersion are unchanged. No account reconnection is needed.
 
 ## Guided account setup
 

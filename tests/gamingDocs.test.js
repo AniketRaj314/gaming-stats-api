@@ -37,6 +37,7 @@ test('public provider docs require no credentials or snapshot/upstream access', 
       for (const text of ['MISCRITS_USERNAME', 'MISCRITS_PASSWORD', 'MISCRITS_APPLICATION_CREDENTIAL',
         'MISCRITS_ACCOUNT_ID is optional', 'startup-and-manual', 'miscrits:import-application-credential',
         'miscrits:connect:production', 'Guided account setup', 'MISCRITS_REFRESH_MINUTES',
+        'elementIconUrl', 'iconUrl', 'accuracy_buff.png', 'Element and ability icons (3.11.0)',
         'requestRefreshIntervalSeconds', 'refreshDue', 'startup-request-and-manual']) {
         expect(res.text).toContain(text);
       }

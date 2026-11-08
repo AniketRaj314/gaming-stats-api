@@ -83,6 +83,8 @@ Illustrative, not a live account record:
   "rating": "S+",
   "qualityScore": 18,
   "teamSlot": 1,
+  "element": "Fire",
+  "elementIconUrl": "https://worldofmiscrits.com/fire.png",
   "artwork": {
     "backUrl": "https://cdn.worldofmiscrits.com/miscrits/flue_back.png",
     "avatarUrl": "https://cdn.worldofmiscrits.com/avatars/flue_avatar.png"
@@ -105,6 +107,43 @@ each have artwork; individual/team artwork selects the current form. Avatar art
 is suitable for compact portraits. backUrl is a back-facing creature asset,
 not a front-facing sprite. Both are public absolute CDN URLs needing no API key.
 Provide error placeholders since derived filenames are not availability guarantees.
+
+## Element badges and ability icons (3.11.0)
+
+Use the API's URLs directly; do not infer icons from ability names or the
+`accuracy` field. No additional endpoint or authentication setup is needed.
+
+- `elementIconUrl` appears on catalog species, owned individuals, active team
+  members and ownership-family rows. It includes combined icons for dual elements.
+- `abilities[].iconUrl` appears in catalog responses, including
+  `/custom/miscrits/miscrits/:miscritId`. Join using an individual's `miscritId`.
+- Keep using `artwork.avatarUrl` / `artwork.backUrl` for creature images.
+- Both new fields are nullable. Use a neutral placeholder for null or a failed
+  image load. Allow `worldofmiscrits.com` in your image host/CSP configuration,
+  alongside the existing `cdn.worldofmiscrits.com`.
+- One ability icon represents its primary action. Continue rendering descriptions,
+  additional effects and enchantments from their original fields. For example,
+  a physical attack with additional healing keeps its physical icon.
+
+Catalog ability fragment:
+
+```json
+{
+  "id": 238,
+  "name": "Laser Focus",
+  "type": "Buff",
+  "element": "Misc",
+  "ap": 20,
+  "keys": ["acc"],
+  "iconUrl": "https://worldofmiscrits.com/accuracy_buff.png"
+}
+```
+
+The API follows game-client icon rules, including accuracy buff/debuff distinctions,
+damage over time, healing, dual-element attacks and status effects. These are
+public website PNGs; game files do not need to be installed or extracted.
+Existing cached responses receive icons immediately, without waiting for a game
+refresh. Snapshot timestamps and freshness behavior retain their existing meaning.
 
 catalogStatus unresolved means new/unknown species metadata could not be resolved.
 Keep the individual visible by its IDs, preserve owned state, and show placeholders

@@ -157,3 +157,9 @@ publisher-only global stats are also outside an owner user-key integration.
 Core player account data, owned individuals, active team and family grouping join a cached public species catalog. Derived ratings, persistent stats, health and evolution artwork are provided. Raw account data is allowlisted and sanitized. Items, saved teams, quests, arena data and in-game feats are deferred. No targets or subjective rankings are implemented. See [Miscrits](miscrits.md).
 
 From v3.10.0, authenticated Miscrits data requests can refresh this shared snapshot in the background when due, defaulting to five minutes. Failures retain the old snapshot and impose the same retry cooldown. The interval is configurable with MISCRITS_REFRESH_MINUTES; zero disables request refresh.
+
+From v3.11.0, catalog, owned, team and family rows include elementIconUrl, and
+catalog abilities include iconUrl. Game-client rules select from verified public
+website PNGs, including dual elements and status effects. Unknown mappings return
+null. Additional effects and enchantments remain intact; icons do not imply
+complete coverage of every effect. Existing cached snapshots are enriched on read.
